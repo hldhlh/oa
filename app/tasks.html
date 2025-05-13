@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>任务管理 - 今岭火锅店OA系统</title>
+    <!-- 使用CSDN加速的Materialize CSS -->
+    <link rel="stylesheet" href="https://lib.baomitu.com/materialize/1.0.0/css/materialize.min.css">
+    <!-- 使用CSDN加速的Material Icons -->
+    <link rel="stylesheet" href="https://lib.baomitu.com/material-design-icons/3.0.1/iconfont/material-icons.min.css">
+    <link rel="stylesheet" href="../assets/css/app.css">
+</head>
+<body class="grey lighten-4">
+    <header>
+        <nav class="light-blue darken-3">
+            <div class="nav-wrapper container">
+                <a href="#" class="brand-logo">今岭火锅店OA</a>
+                <a href="#" data-target="mobile-nav" class="sidenav-trigger"><i class="material-icons">menu</i></a>
+                <ul class="right hide-on-med-and-down">
+                    <li><a href="dashboard.html">控制面板</a></li>
+                    <li class="active"><a href="#">任务管理</a></li>
+                    <li><a href="docs.html">文档管理</a></li>
+                    <li><a href="#" id="logout-btn"><i class="material-icons left">exit_to_app</i>退出</a></li>
+                </ul>
+            </div>
+        </nav>
+        
+        <ul class="sidenav" id="mobile-nav">
+            <li><a href="dashboard.html"><i class="material-icons left">dashboard</i>控制面板</a></li>
+            <li class="active"><a href="#"><i class="material-icons left">assignment</i>任务管理</a></li>
+            <li><a href="docs.html"><i class="material-icons left">folder</i>文档管理</a></li>
+            <li><a href="#" id="mobile-logout-btn"><i class="material-icons left">exit_to_app</i>退出</a></li>
+        </ul>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="section">
+                <div class="row">
+                    <div class="col s12">
+                        <div class="card">
+                            <div class="card-content">
+                                <div class="row">
+                                    <div class="col s12 m8">
+                                        <span class="card-title">任务管理</span>
+                                    </div>
+                                    <div class="col s12 m4 right-align">
+                                        <a class="btn-floating btn-large waves-effect waves-light light-blue darken-3 modal-trigger" href="#add-task-modal">
+                                            <i class="material-icons">add</i>
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col s12">
+                                        <ul class="tabs">
+                                            <li class="tab col s3"><a href="#all-tasks" class="active">所有任务</a></li>
+                                            <li class="tab col s3"><a href="#my-tasks">我的任务</a></li>
+                                            <li class="tab col s3"><a href="#pending-tasks">待处理</a></li>
+                                            <li class="tab col s3"><a href="#completed-tasks">已完成</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="all-tasks">
+                    <div class="row">
+                        <div class="col s12">
+                            <ul class="collection" id="all-tasks-list">
+                                <li class="collection-item">
+                                    <div class="task-item">
+                                        <span>暂无任务</span>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="my-tasks">
+                    <div class="row">
+                        <div class="col s12">
+                            <ul class="collection" id="my-tasks-list">
+                                <li class="collection-item">
+                                    <div class="task-item">
+                                        <span>暂无任务</span>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="pending-tasks">
+                    <div class="row">
+                        <div class="col s12">
+                            <ul class="collection" id="pending-tasks-list">
+                                <li class="collection-item">
+                                    <div class="task-item">
+                                        <span>暂无任务</span>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="completed-tasks">
+                    <div class="row">
+                        <div class="col s12">
+                            <ul class="collection" id="completed-tasks-list">
+                                <li class="collection-item">
+                                    <div class="task-item">
+                                        <span>暂无任务</span>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 添加任务模态框 -->
+    <div id="add-task-modal" class="modal">
+        <div class="modal-content">
+            <h4>创建新任务</h4>
+            <form id="add-task-form">
+                <div class="row">
+                    <div class="input-field col s12">
+                        <input id="task-title" type="text" class="validate" required>
+                        <label for="task-title">任务标题</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="input-field col s12">
+                        <textarea id="task-description" class="materialize-textarea" required></textarea>
+                        <label for="task-description">任务描述</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="input-field col s12 m6">
+                        <select id="task-priority" required>
+                            <option value="" disabled selected>请选择优先级</option>
+                            <option value="low">低</option>
+                            <option value="medium">中</option>
+                            <option value="high">高</option>
+                        </select>
+                        <label>优先级</label>
+                    </div>
+                    <div class="input-field col s12 m6">
+                        <select id="task-assignee" required>
+                            <option value="" disabled selected>请选择负责人</option>
+                            <!-- 员工列表将由JS动态加载 -->
+                        </select>
+                        <label>负责人</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="input-field col s12">
+                        <input id="task-due-date" type="text" class="datepicker" required>
+                        <label for="task-due-date">截止日期</label>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <a href="#!" class="modal-close waves-effect waves-light btn-flat">取消</a>
+            <button type="submit" form="add-task-form" class="waves-effect waves-light btn light-blue darken-3">创建</button>
+        </div>
+    </div>
+
+    <!-- 任务详情模态框 -->
+    <div id="task-detail-modal" class="modal">
+        <div class="modal-content">
+            <h4 id="detail-task-title">任务详情</h4>
+            <div class="row">
+                <div class="col s12">
+                    <p><strong>描述：</strong><span id="detail-task-description"></span></p>
+                    <p><strong>优先级：</strong><span id="detail-task-priority"></span></p>
+                    <p><strong>负责人：</strong><span id="detail-task-assignee"></span></p>
+                    <p><strong>创建时间：</strong><span id="detail-task-created"></span></p>
+                    <p><strong>截止日期：</strong><span id="detail-task-due-date"></span></p>
+                    <p><strong>状态：</strong><span id="detail-task-status"></span></p>
+                </div>
+            </div>
+            <div class="row" id="task-comments-section">
+                <div class="col s12">
+                    <h5>评论</h5>
+                    <ul class="collection" id="task-comments">
+                        <!-- 评论将由JS动态加载 -->
+                    </ul>
+                    <div class="input-field">
+                        <textarea id="new-comment" class="materialize-textarea"></textarea>
+                        <label for="new-comment">添加评论</label>
+                    </div>
+                    <button id="add-comment-btn" class="btn waves-effect waves-light light-blue darken-3">添加评论</button>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <a href="#!" class="modal-close waves-effect waves-light btn-flat">关闭</a>
+            <button id="complete-task-btn" class="waves-effect waves-light btn green">标记为完成</button>
+        </div>
+    </div>
+
+    <footer class="page-footer light-blue darken-3">
+        <div class="footer-copyright">
+            <div class="container center-align">
+                © 2024 今岭火锅店 - 内部办公系统
+            </div>
+        </div>
+    </footer>
+
+    <!-- 使用CSDN加速的Materialize JS -->
+    <script src="https://lib.baomitu.com/materialize/1.0.0/js/materialize.min.js"></script>
+    <!-- 使用CSDN加速的Supabase JS -->
+    <script src="https://lib.baomitu.com/supabase-js/2.5.0/umd/supabase.min.js"></script>
+    <script src="../assets/js/app.js"></script>
+    <script src="../assets/js/tasks.js"></script>
+</body>
+</html> 

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - 今岭火锅店OA系统</title>
+    <!-- 使用CSDN加速的Materialize CSS -->
+    <link rel="stylesheet" href="https://lib.baomitu.com/materialize/1.0.0/css/materialize.min.css">
+    <!-- 使用CSDN加速的Material Icons -->
+    <link rel="stylesheet" href="https://lib.baomitu.com/material-design-icons/3.0.1/iconfont/material-icons.min.css">
+    <link rel="stylesheet" href="../assets/css/app.css">
+</head>
+<body class="grey lighten-4">
+    <header>
+        <nav class="light-blue darken-3">
+            <div class="nav-wrapper container">
+                <a href="../index.html" class="brand-logo">今岭火锅店OA</a>
+                <a href="#" data-target="mobile-nav" class="sidenav-trigger"><i class="material-icons">menu</i></a>
+                <ul class="right hide-on-med-and-down">
+                    <li class="active"><a href="#">登录</a></li>
+                </ul>
+            </div>
+        </nav>
+        
+        <ul class="sidenav" id="mobile-nav">
+            <li class="active"><a href="#">登录</a></li>
+        </ul>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="row">
+                <div class="col s12 m8 offset-m2 l6 offset-l3">
+                    <div class="card-panel">
+                        <ul class="tabs tabs-fixed-width">
+                            <li class="tab"><a href="#login-form" class="active">员工登录</a></li>
+                            <li class="tab"><a href="#register-form">新员工注册</a></li>
+                        </ul>
+                        
+                        <div id="login-form" class="section">
+                            <form id="login" class="col s12">
+                                <div class="row">
+                                    <div class="input-field col s12">
+                                        <i class="material-icons prefix">phone</i>
+                                        <input id="phone" type="tel" class="validate" required>
+                                        <label for="phone">手机号码</label>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="input-field col s12">
+                                        <i class="material-icons prefix">lock</i>
+                                        <input id="password" type="password" class="validate" required>
+                                        <label for="password">密码</label>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col s12">
+                                        <button class="btn waves-effect waves-light light-blue darken-3 btn-large w-100" type="submit" name="action">
+                                            登录
+                                            <i class="material-icons right">send</i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <div id="register-form" class="section">
+                            <form id="register" class="col s12">
+                                <div class="row">
+                                    <div class="input-field col s12">
+                                        <i class="material-icons prefix">account_circle</i>
+                                        <input id="fullname" type="text" class="validate" required>
+                                        <label for="fullname">姓名</label>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="input-field col s12">
+                                        <i class="material-icons prefix">phone</i>
+                                        <input id="reg_phone" type="tel" class="validate" required>
+                                        <label for="reg_phone">手机号码</label>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="input-field col s12">
+                                        <i class="material-icons prefix">lock</i>
+                                        <input id="reg_password" type="password" class="validate" required>
+                                        <label for="reg_password">设置密码</label>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="input-field col s12">
+                                        <i class="material-icons prefix">work</i>
+                                        <select id="position" required>
+                                            <option value="" disabled selected>请选择职位</option>
+                                            <option value="waiter">服务员</option>
+                                            <option value="chef">厨师</option>
+                                            <option value="cashier">收银员</option>
+                                            <option value="manager">经理</option>
+                                        </select>
+                                        <label>职位</label>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col s12">
+                                        <button class="btn waves-effect waves-light light-blue darken-3 btn-large w-100" type="submit" name="action">
+                                            注册
+                                            <i class="material-icons right">person_add</i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="page-footer light-blue darken-3">
+        <div class="footer-copyright">
+            <div class="container center-align">
+                © 2024 今岭火锅店 - 内部办公系统
+            </div>
+        </div>
+    </footer>
+
+    <!-- 使用CSDN加速的Materialize JS -->
+    <script src="https://lib.baomitu.com/materialize/1.0.0/js/materialize.min.js"></script>
+    <!-- 使用CSDN加速的Supabase JS -->
+    <script src="https://lib.baomitu.com/supabase-js/2.5.0/umd/supabase.min.js"></script>
+    <script src="../assets/js/app.js"></script>
+    <script src="../assets/js/auth.js"></script>
+</body>
+</html> 

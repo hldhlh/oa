@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>今岭火锅店OA系统</title>
+    <!-- 使用CSDN加速的Materialize CSS -->
+    <link rel="stylesheet" href="https://lib.baomitu.com/materialize/1.0.0/css/materialize.min.css">
+    <!-- 使用CSDN加速的Material Icons -->
+    <link rel="stylesheet" href="https://lib.baomitu.com/material-design-icons/3.0.1/iconfont/material-icons.min.css">
+    <link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+    <header>
+        <nav class="light-blue darken-3">
+            <div class="nav-wrapper container">
+                <a href="#" class="brand-logo">今岭火锅店OA</a>
+                <a href="#" data-target="mobile-nav" class="sidenav-trigger"><i class="material-icons">menu</i></a>
+                <ul class="right hide-on-med-and-down">
+                    <li><a href="app/auth.html">登录</a></li>
+                </ul>
+            </div>
+        </nav>
+        
+        <ul class="sidenav" id="mobile-nav">
+            <li><a href="app/auth.html">登录</a></li>
+        </ul>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="section">
+                <div class="row">
+                    <div class="col s12 m8 offset-m2">
+                        <div class="card-panel center-align">
+                            <h4>欢迎使用今岭火锅店OA系统</h4>
+                            <p>高效管理餐厅日常运营，提升服务质量</p>
+                            <div class="section">
+                                <a href="app/auth.html" class="btn-large waves-effect waves-light light-blue darken-3">
+                                    <i class="material-icons left">person</i>员工登录
+                                </a>
+                            </div>
+                            <div class="section center-align">
+                                <a href="setup.html" class="btn waves-effect waves-light amber darken-2">
+                                    <i class="material-icons left">settings</i>初始化数据库
+                                </a>
+                                <p class="grey-text">首次使用系统请先点击上方按钮初始化数据库</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="page-footer light-blue darken-3">
+        <div class="footer-copyright">
+            <div class="container center-align">
+                © 2024 今岭火锅店 - 内部办公系统
+            </div>
+        </div>
+    </footer>
+
+    <!-- 使用CSDN加速的Materialize JS -->
+    <script src="https://lib.baomitu.com/materialize/1.0.0/js/materialize.min.js"></script>
+    <!-- 使用CSDN加速的Supabase JS -->
+    <script src="https://lib.baomitu.com/supabase-js/2.5.0/umd/supabase.min.js"></script>
+    <script src="assets/js/app.js"></script>
+</body>
+</html> 

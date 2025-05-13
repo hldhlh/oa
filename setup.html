@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据库初始化 - 今岭火锅店OA系统</title>
+    <!-- 使用CSDN加速的Materialize CSS -->
+    <link rel="stylesheet" href="https://lib.baomitu.com/materialize/1.0.0/css/materialize.min.css">
+    <!-- 使用CSDN加速的Material Icons -->
+    <link rel="stylesheet" href="https://lib.baomitu.com/material-design-icons/3.0.1/iconfont/material-icons.min.css">
+    <link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+    <header>
+        <nav class="light-blue darken-3">
+            <div class="nav-wrapper container">
+                <a href="#" class="brand-logo">今岭火锅店OA</a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="section">
+                <div class="row">
+                    <div class="col s12 m8 offset-m2">
+                        <div class="card-panel">
+                            <h4 class="center-align">数据库初始化</h4>
+                            <p class="center-align">此页面将为OA系统创建必要的数据表并启用实时功能</p>
+                            
+                            <div class="section">
+                                <div class="progress">
+                                    <div class="indeterminate"></div>
+                                </div>
+                                <p id="setup-status" class="center-align">正在初始化数据库...</p>
+                            </div>
+                            
+                            <div class="section center-align">
+                                <a href="index.html" id="goto-home" class="btn-large waves-effect waves-light light-blue darken-3 disabled">
+                                    <i class="material-icons left">home</i>返回首页
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="page-footer light-blue darken-3">
+        <div class="footer-copyright">
+            <div class="container center-align">
+                © 2024 今岭火锅店 - 内部办公系统
+            </div>
+        </div>
+    </footer>
+
+    <!-- 使用CSDN加速的Materialize JS -->
+    <script src="https://lib.baomitu.com/materialize/1.0.0/js/materialize.min.js"></script>
+    <!-- 使用Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/setup.js"></script>
+    
+    <script>
+        // 监听初始化状态
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'characterData' || mutation.type === 'childList') {
+                    const setupStatus = document.getElementById('setup-status');
+                    if (setupStatus.textContent.includes('初始化成功')) {
+                        // 如果初始化成功，启用返回首页按钮
+                        document.getElementById('goto-home').classList.remove('disabled');
+                    }
+                }
+            });
+        });
+        
+        // 开始观察
+        observer.observe(document.getElementById('setup-status'), {
+            characterData: true,
+            childList: true,
+            subtree: true
+        });
+    </script>
+</body>
+</html> 
