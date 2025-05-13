@@ -1,6 +1,6 @@
 /**
  * 今岭火锅店OA系统 - 认证模块
- * 版本: 1.0.7
+ * 版本: 1.0.6
  * 最后更新: 2024-05-13
  */
 
@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', function() {
     M.FormSelect.init(selectElems);
     
     // 显示版本信息
-    console.log('认证模块版本: 1.0.7');
+    console.log('认证模块版本: 1.0.6');
 });
 
 /**
@@ -42,12 +42,7 @@ async function handleLogin(e) {
     
     // 表单验证
     if (!phone || !password) {
-        // 使用错误面板显示
-        if (window.showErrorPanel) {
-            window.showErrorPanel('手机号或密码错误');
-        } else {
-            showToast('手机号或密码错误', 'red');
-        }
+        showToast('请填写完整信息', 'red');
         return;
     }
     
@@ -71,22 +66,12 @@ async function handleLogin(e) {
         
         if (userError) {
             console.error('查询用户信息失败:', userError);
-            // 使用错误面板显示
-            if (window.showErrorPanel) {
-                window.showErrorPanel('登录失败，系统错误');
-            } else {
-                showToast('登录失败，系统错误', 'red');
-            }
+            showToast('登录失败，系统错误', 'red');
             return;
         }
         
         if (!user) {
-            // 使用错误面板显示
-            if (window.showErrorPanel) {
-                window.showErrorPanel('手机号或密码错误');
-            } else {
-                showToast('手机号或密码错误', 'red');
-            }
+            showToast('手机号或密码错误', 'red');
             return;
         }
         
@@ -108,12 +93,7 @@ async function handleLogin(e) {
     } catch (error) {
         submitButton.disabled = false;
         submitButton.innerHTML = '登录 <i class="material-icons right">send</i>';
-        // 使用错误面板显示
-        if (window.showErrorPanel) {
-            window.showErrorPanel('登录失败，请重试');
-        } else {
-            showToast('登录失败，请重试', 'red');
-        }
+        showToast('登录失败，请重试', 'red');
         console.error('登录错误:', error);
     }
 }
@@ -132,12 +112,7 @@ async function handleRegister(e) {
     
     // 表单验证
     if (!fullname || !phone || !password || !position) {
-        // 使用错误面板显示
-        if (window.showErrorPanel) {
-            window.showErrorPanel('请填写完整信息');
-        } else {
-            showToast('请填写完整信息', 'red');
-        }
+        showToast('请填写完整信息', 'red');
         return;
     }
     
@@ -162,12 +137,7 @@ async function handleRegister(e) {
         if (existingProfile) {
             submitButton.disabled = false;
             submitButton.innerHTML = '注册 <i class="material-icons right">person_add</i>';
-            // 使用错误面板显示
-            if (window.showErrorPanel) {
-                window.showErrorPanel('手机号已被注册，请直接登录或使用其他手机号');
-            } else {
-                showToast('手机号已被注册，请直接登录或使用其他手机号', 'red');
-            }
+            showToast('手机号已被注册，请直接登录或使用其他手机号', 'red');
             return;
         }
         
@@ -187,12 +157,7 @@ async function handleRegister(e) {
             submitButton.disabled = false;
             submitButton.innerHTML = '注册 <i class="material-icons right">person_add</i>';
             console.error('创建用户错误:', insertError);
-            // 使用错误面板显示
-            if (window.showErrorPanel) {
-                window.showErrorPanel('注册失败: ' + insertError.message);
-            } else {
-                showToast('注册失败: ' + insertError.message, 'red');
-            }
+            showToast('注册失败: ' + insertError.message, 'red');
             return;
         }
         
@@ -227,12 +192,7 @@ async function handleRegister(e) {
     } catch (error) {
         document.querySelector('#register button[type="submit"]').disabled = false;
         document.querySelector('#register button[type="submit"]').innerHTML = '注册 <i class="material-icons right">person_add</i>';
-        // 使用错误面板显示
-        if (window.showErrorPanel) {
-            window.showErrorPanel('注册失败，请重试');
-        } else {
-            showToast('注册失败，请重试', 'red');
-        }
+        showToast('注册失败，请重试', 'red');
         console.error('注册错误:', error);
     }
 }

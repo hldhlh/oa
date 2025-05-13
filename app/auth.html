@@ -12,30 +12,8 @@
     <!-- 使用CSDN加速的Material Icons -->
     <link rel="stylesheet" href="https://lib.baomitu.com/material-design-icons/3.0.1/iconfont/material-icons.min.css">
     <link rel="stylesheet" href="../assets/css/app.css">
-    <style>
-        /* 错误提示面板样式 */
-        #error-panel {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: #F44336;
-            color: white;
-            padding: 15px 25px;
-            border-radius: 4px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-            z-index: 9999;
-            text-align: center;
-            min-width: 300px;
-            max-width: 500px;
-            display: none;
-        }
-    </style>
 </head>
 <body class="grey lighten-4">
-    <!-- 错误提示面板 -->
-    <div id="error-panel"></div>
-    
     <header>
         <nav class="light-blue darken-3">
             <div class="nav-wrapper container">
@@ -156,7 +134,7 @@
     <!-- 先加载app.js确保Supabase正确初始化 -->
     <script src="../assets/js/app.js?v=1.0.3"></script>
     <!-- 然后加载auth.js处理登录逻辑 -->
-    <script src="../assets/js/auth.js?v=1.0.7"></script>
+    <script src="../assets/js/auth.js?v=1.0.6"></script>
     
     <script>
         // 确保组件正确初始化
@@ -175,18 +153,6 @@
             
             // 显示版本信息，帮助确认是否已经更新
             console.log('当前JS文件版本: 1.0.3');
-            
-            // 添加全局错误提示函数
-            window.showErrorPanel = function(message) {
-                const panel = document.getElementById('error-panel');
-                panel.textContent = message;
-                panel.style.display = 'block';
-                
-                // 3秒后自动隐藏
-                setTimeout(() => {
-                    panel.style.display = 'none';
-                }, 3000);
-            };
         });
     </script>
 </body>
