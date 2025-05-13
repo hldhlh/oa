@@ -78,3 +78,17 @@
 - 系统管理员：管理员姓名
 - 联系电话：联系电话
 - 电子邮箱：电子邮箱
+
+profiles 表结构
+| 字段名 | 数据类型 | 默认值 | 描述 |
+|--------|---------|--------|------|
+| id | UUID | PRIMARY KEY | 用户唯一标识符 |
+| full_name | TEXT | NOT NULL | 用户全名 |
+| phone | TEXT | NULL | 手机号码 |
+| position | TEXT | NULL | 职位 |
+| password | TEXT | NULL | 用户密码 |
+| status | TEXT | 'active' | 用户状态（active/inactive等） |
+| role | TEXT | 'staff' | 用户角色（staff/manager/admin） |
+| last_password_change | TIMESTAMP WITH TIME ZONE | NULL | 最后密码修改时间 |
+| created_at | TIMESTAMP WITH TIME ZONE | timezone('utc'::text, now()) | 创建时间 |
+| last_login | TIMESTAMP WITH TIME ZONE | timezone('utc'::text, now()) | 最后登录时间 |

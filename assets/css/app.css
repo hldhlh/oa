@@ -33,6 +33,11 @@ main {
 /* 卡片样式 */
 .card-panel {
     border-radius: 4px;
+    padding: 24px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 /* 表单样式 */
@@ -112,7 +117,48 @@ main {
 
 /* 登录页面样式 */
 .tabs-fixed-width {
-    margin-bottom: 20px;
+    margin-bottom: 25px;
+}
+
+/* 登录卡片特殊样式 */
+.auth-card {
+    padding-top: 0;
+    padding-bottom: 30px;
+    min-height: 450px;
+}
+
+.auth-card .tabs {
+    margin-left: -24px;
+    margin-right: -24px;
+    width: calc(100% + 48px);
+    margin-bottom: 30px;
+    height: 48px;
+}
+
+.auth-card .tabs .tab a {
+    padding: 0 24px;
+    line-height: 48px;
+    height: 48px;
+}
+
+.auth-card .tabs .indicator {
+    height: 3px;
+    background-color: #0277bd;
+}
+
+/* 表单内容区域 */
+.auth-card .section {
+    margin-top: 30px;
+    padding: 0 12px;
+}
+
+.auth-card .input-field {
+    margin-top: 25px;
+    margin-bottom: 25px;
+}
+
+.auth-card button {
+    margin-top: 20px;
 }
 
 /* 仪表盘样式 */
@@ -133,9 +179,39 @@ main {
     
     .card-panel, .card {
         margin: 0.5rem 0;
+        padding: 16px;
     }
     
     .section {
         padding-top: 0.5rem;
+    }
+    
+    /* 移动端登录卡片优化 */
+    .auth-card {
+        padding: 0 0 20px 0;
+    }
+    
+    .auth-card .tabs {
+        margin-left: -16px;
+        margin-right: -16px;
+        width: calc(100% + 32px);
+        height: 42px;
+    }
+    
+    .auth-card .tabs .tab a {
+        padding: 0 16px;
+        font-size: 14px;
+        line-height: 42px;
+        height: 42px;
+    }
+    
+    .auth-card .section {
+        padding: 16px 16px 0 16px;
+        margin-top: 20px;
+    }
+    
+    .auth-card .input-field {
+        margin-top: 20px;
+        margin-bottom: 20px;
     }
 } 

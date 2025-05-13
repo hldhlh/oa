@@ -32,10 +32,10 @@ alwaysApply: true
 - 只订阅核心数据流
 - 简化安全规则设置
 - 减少数据冗余
-- **重点：直接使用Supabase服务密钥操作后端，无需担心安全问题**
+- **重点：使用Supabase客户端密钥操作前端，确保安全性**
 - **最大化利用Supabase实时数据服务，确保数据同步高效可靠**
 - Supabase项目URL：https://ainzxxuoweieowjyalgf.supabase.co
-- Supabase项目的service_role服务器key:eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpbnp4eHVvd2VpZW93anlhbGdmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTc2NzQ4NiwiZXhwIjoyMDYxMzQzNDg2fQ.UQuD6E7_y9TAaIXY30_246avjNip_UqGQO2NJSRUsl4
+- Supabase项目的客户端anon密钥：eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpbnp4eHVvd2VpZW93anlhbGdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU3Njc0ODYsImV4cCI6MjA2MTM0MzQ4Nn0.FLndEbZjMTXEAwyBpzMxgzOh-t3DAfELIn6GthcBJ8s
 - Supabase API文档：https://supabase.com/docs/guides/api
 - Supabase官方文档：https://supabase.com/docs
 

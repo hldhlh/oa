@@ -1,34 +1,19 @@
-// Supabase配置
-const SUPABASE_URL = 'https://ainzxxuoweieowjyalgf.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpbnp4eHVvd2VpZW93anlhbGdmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTc2NzQ4NiwiZXhwIjoyMDYxMzQzNDg2fQ.UQuD6E7_y9TAaIXY30_246avjNip_UqGQO2NJSRUsl4';
-
-// 初始化Supabase客户端
-let supabase;
-
-// 载入Supabase JS
-function loadSupabaseScript() {
-    return new Promise((resolve, reject) => {
-        if (window.supabase) {
-            resolve();
-            return;
-        }
-        
-        const script = document.createElement('script');
-        script.src = 'https://lib.baomitu.com/supabase-js/2.5.0/umd/supabase.min.js';
-        script.onload = resolve;
-        script.onerror = reject;
-        document.head.appendChild(script);
-    });
-}
+// Supabase配置 - 全局变量
+window.supabaseUrl = 'https://ainzxxuoweieowjyalgf.supabase.co';
+window.supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpbnp4eHVvd2VpZW93anlhbGdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU3Njc0ODYsImV4cCI6MjA2MTM0MzQ4Nn0.FLndEbZjMTXEAwyBpzMxgzOh-t3DAfELIn6GthcBJ8s';
 
 // 初始化Materialize组件
 document.addEventListener('DOMContentLoaded', async function() {
     try {
-        // 加载Supabase JS
-        await loadSupabaseScript();
+        // 确保supabase库已正确加载
+        if (!window.supabase) {
+            console.error('Supabase库未加载，尝试重新加载...');
+            // 动态加载Supabase库
+            await loadSupabaseScript();
+        }
         
         // 初始化Supabase客户端
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        window.supabaseClient = window.supabase.createClient(window.supabaseUrl, window.supabaseKey);
         
         // 初始化侧边导航
         const sidenavElems = document.querySelectorAll('.sidenav');
@@ -46,12 +31,31 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 });
 
+// 动态加载Supabase库
+async function loadSupabaseScript() {
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+        script.onload = () => {
+            console.log('Supabase库加载成功');
+            resolve();
+        };
+        script.onerror = () => {
+            console.error('无法加载Supabase库');
+            reject(new Error('无法加载Supabase库'));
+        };
+        document.head.appendChild(script);
+    });
+}
+
 // 检查用户认证状态
 async function checkAuth() {
     try {
-        const { data: session } = await supabase.auth.getSession();
+        // 使用localStorage检查用户是否已登录
+        const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
         
-        if (!session || !session.user) {
+        if (!isLoggedIn || !currentUser) {
             // 如果没有登录且不在登录页面，则重定向到登录页
             if (!window.location.href.includes('auth.html') && !window.location.href.endsWith('index.html') && !window.location.href.endsWith('/')) {
                 window.location.href = '../app/auth.html';
@@ -77,7 +81,11 @@ document.addEventListener('click', function(e) {
 // 登出函数
 async function logout() {
     try {
-        await supabase.auth.signOut();
+        // 清除用户登录状态
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('isLoggedIn');
+        
+        // 重定向到首页
         window.location.href = '../index.html';
     } catch (error) {
         console.error('登出失败:', error);
@@ -94,8 +102,9 @@ function formatDate(dateString) {
 // 获取当前用户信息
 async function getCurrentUser() {
     try {
-        const { data: { user } } = await supabase.auth.getUser();
-        return user;
+        // 从localStorage获取当前用户信息
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+        return currentUser;
     } catch (error) {
         console.error('获取用户信息失败:', error);
         return null;
@@ -105,7 +114,14 @@ async function getCurrentUser() {
 // 获取用户详细信息
 async function getUserProfile(userId) {
     try {
-        const { data, error } = await supabase
+        // 先尝试从localStorage获取
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+        if (currentUser && currentUser.id === userId) {
+            return currentUser;
+        }
+        
+        // 如果localStorage中没有或不匹配，则从数据库查询
+        const { data, error } = await window.supabaseClient
             .from('profiles')
             .select('*')
             .eq('id', userId)
