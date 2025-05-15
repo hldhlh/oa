@@ -1,31 +1,1100 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>排班管理 - 今岭火锅店OA系统</title>
-    <link rel="stylesheet" href="schedule.css">
-    <link rel="icon" href="../../assets/favicon.ico" type="image/x-icon">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>餐厅排班可视化</title>
+<style>
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f4f7f6;
+        color: #333;
+    }
+    .main-container {
+        max-width: 1400px;
+        margin: auto;
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+    h1, h2 {
+        color: #2c3e50;
+        border-bottom: 2px solid #3498db;
+        padding-bottom: 10px;
+    }
+    h1 { text-align: center; margin-bottom: 30px; }
+    h2 { margin-top: 30px; margin-bottom: 15px; font-size: 1.5em; }
+
+    .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-bottom: 30px;
+        padding: 15px;
+        background-color: #ecf0f1;
+        border-radius: 5px;
+    }
+    .legend-item {
+        display: flex;
+        align-items: center;
+        font-size: 0.9em;
+    }
+    .legend-color-box {
+        width: 20px;
+        height: 20px;
+        margin-right: 8px;
+        border: 1px solid #bdc3c7;
+        border-radius: 3px;
+    }
+    .day-block {
+        margin-bottom: 40px;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+    }
+    .timeline-area {
+        width: 100%;
+        overflow-x: auto; /* Allows horizontal scrolling for very narrow screens if needed */
+    }
+
+    .time-header-wrapper {
+        display: flex;
+    }
+    .staff-label-placeholder { /* To align with staff labels column */
+        min-width: 150px; /* Must match .staff-label width */
+        flex-shrink: 0;
+    }
+    .time-header {
+        display: flex;
+        flex-grow: 1;
+        border-bottom: 1px solid #ccc;
+        background-color: #f9f9f9;
+        position: relative; /* For hour lines */
+    }
+    .time-hour-label {
+        flex: 1 0 0;
+        text-align: center;
+        padding: 8px 0;
+        font-size: 0.8em;
+        color: #555;
+        border-right: 1px solid #e0e0e0;
+        min-width: 50px;
+        box-sizing: border-box;
+        position: relative;
+        cursor: pointer;
+        user-select: none;
+    }
+    .time-hour-label:first-child {
+        padding-left: 0;
+        text-align: left;
+    }
+    .time-hour-label:last-child {
+        border-right: none;
+        text-align: right;
+        padding-right: 0;
+    }
+    .time-hour-label:hover {
+        background-color: rgba(231, 76, 60, 0.1);
+    }
+    .time-hour-label.peak-time {
+        background-color: rgba(231, 76, 60, 0.2);
+        color: #e74c3c;
+        font-weight: bold;
+    }
+    .time-hour-label.peak-time::after {
+        content: '⚡';
+        position: absolute;
+        top: -2px;
+        right: 2px;
+        font-size: 10px;
+        color: #e74c3c;
+    }
+
+    .staff-track-row {
+        display: flex;
+        align-items: center;
+        border-bottom: 1px solid #eee;
+        min-height: 50px;
+    }
+    .staff-track-row:last-child {
+        border-bottom: none;
+    }
+    .staff-label {
+        min-width: 150px; /* Fixed width for staff names */
+        padding: 10px 5px;
+        font-size: 0.9em;
+        font-weight: bold;
+        background-color: #f8f9fa;
+        border-right: 1px solid #ddd;
+        flex-shrink: 0;
+        box-sizing: border-box;
+        line-height: 1.3;
+    }
+    .staff-label small {
+      font-weight: normal;
+      font-size: 0.8em;
+      color: #555;
+      display: block;
+    }
+
+    .shift-timeline-bar {
+        flex-grow: 1;
+        height: 40px;
+        background-color: #fff;
+        position: relative;
+        background-image: linear-gradient(to right, #e0e0e0 1px, transparent 1px);
+        background-size: calc(100%/18) 100%;
+    }
+
+    .peak-time-background {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        background-color: rgba(231, 76, 60, 0.1);
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    .shift-segment {
+        position: absolute;
+        height: 100%;
+        border-radius: 4px;
+        box-sizing: border-box;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75em;
+        color: white;
+        text-shadow: 1px 1px 1px rgba(0,0,0,0.2);
+        opacity: 0.9;
+        border: 1px solid rgba(0,0,0,0.2);
+        cursor: default;
+        user-select: none;
+        z-index: 1;
+    }
+    
+    /* 左侧调整手柄 - 默认隐藏 */
+    .shift-segment::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 8px;
+        cursor: w-resize;
+        background: rgba(0,0,0,0.1);
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+
+    /* 右侧调整手柄 - 默认隐藏 */
+    .shift-segment::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 8px;
+        cursor: e-resize;
+        background: rgba(0,0,0,0.1);
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+
+    /* 鼠标悬停时显示交互标识 */
+    .shift-segment:hover {
+        cursor: move;
+    }
+
+    /* 鼠标悬停时显示调整手柄 */
+    .shift-segment:hover::before,
+    .shift-segment:hover::after {
+        opacity: 1;
+        background: rgba(0,0,0,0.2);
+    }
+
+    .shift-segment.dragging {
+        opacity: 0.7;
+        z-index: 1000;
+    }
+    .shift-segment.work {
+      /* Base work style, specific colors below */
+    }
+    .shift-segment.rest {
+        background-color: #bdc3c7 !important;
+        color: #333;
+        border: 1px dashed #7f8c8d;
+        z-index: 5;
+    }
+
+    /* Role and Type Specific Colors */
+    .front-office { background-color: #3498db; }
+    .back-kitchen { background-color: #e67e22; }
+    .dishwasher { background-color: #2ecc71; }
+
+    .full-time {}
+    .part-time { opacity: 0.5; }
+    
+    .note {
+      padding: 10px;
+      font-style: italic;
+      color: #7f8c8d;
+      font-size: 0.9em;
+    }
+
+    /* 右键菜单样式 */
+    .context-menu {
+        display: none;
+        position: absolute;
+        background-color: white;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        border-radius: 4px;
+        z-index: 1000;
+        overflow: hidden;
+        min-width: 160px;
+        border: 1px solid rgba(0,0,0,0.1);
+    }
+    .context-menu-item {
+        padding: 10px 15px;
+        cursor: pointer;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        color: #333;
+        transition: all 0.2s ease;
+    }
+    .context-menu-item:hover {
+        background-color: #f5f5f5;
+    }
+    .context-menu-item svg {
+        margin-right: 8px;
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+    }
+    .context-menu-item#deleteSegment {
+        color: #e74c3c;
+    }
+    .context-menu-item#deleteSegment:hover {
+        background-color: #fee;
+    }
+    .context-menu-item#deleteSegment svg {
+        stroke: #e74c3c;
+    }
+    /* 加载提示 */
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0,0,0,0.6);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        color: white;
+        font-size: 16px;
+    }
+    .loading-spinner {
+        border: 4px solid rgba(255,255,255,0.3);
+        border-radius: 50%;
+        border-top: 4px solid white;
+        width: 40px;
+        height: 40px;
+        margin-right: 10px;
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* 添加时间提示样式 */
+    .time-tooltip {
+        position: absolute;
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        pointer-events: none;
+        z-index: 1001;
+        display: none;
+    }
+
+    .shift-segment {
+        position: absolute;
+        height: 100%;
+        border-radius: 4px;
+        box-sizing: border-box;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75em;
+        color: white;
+        text-shadow: 1px 1px 1px rgba(0,0,0,0.2);
+        opacity: 0.9;
+        border: 1px solid rgba(0,0,0,0.2);
+        cursor: default;
+        user-select: none;
+        z-index: 1;
+    }
+
+    .shift-segment.dragging {
+        opacity: 0.7;
+        z-index: 1000;
+    }
+
+    /* Role and Type Specific Colors */
+    .front-office { background-color: #3498db; }
+    .back-kitchen { background-color: #e67e22; }
+    .dishwasher { background-color: #2ecc71; }
+
+    .full-time {}
+    .part-time { opacity: 0.5; }
+    
+    .note {
+      padding: 10px;
+      font-style: italic;
+      color: #7f8c8d;
+      font-size: 0.9em;
+    }
+</style>
 </head>
 <body>
-    <header>
-        <h1>今岭火锅店 OA 系统</h1>
-        <nav id="mainNav">
-            <a href="../dashboard/index.html">仪表盘</a>
-            <a href="../apply/index.html">申请</a>
-            <a href="../approvals/index.html">审批</a>
-            <a href="../schedule/index.html" class="active">排班</a>
-            <button id="logoutButton">注销</button>
-        </nav>
-    </header>
 
-    <main class="container">
-        <h2>排班管理</h2>
-        <p>这里是排班管理页面内容区域。</p>
-        <!-- 后续将添加具体的排班表单和展示逻辑 -->
-    </main>
+<div class="main-container">
+    <h1>餐厅排班可视化</h1>
 
-    <script type="module" src="schedule.js"></script>
-    <script type="module" src="../../lib/common.js"></script>
+    <div class="legend">
+        <div class="legend-item"><div class="legend-color-box front-office"></div> 前厅</div>
+        <div class="legend-item"><div class="legend-color-box back-kitchen"></div> 后厨</div>
+        <div class="legend-item"><div class="legend-color-box dishwasher"></div> 洗碗间</div>
+        <div class="legend-item"><div class="legend-color-box" style="background-color: #bdc3c7;"></div> 休息时段</div>
+        <div class="legend-item"><div class="legend-color-box" style="opacity:0.5; background-color: #3498db;"></div> 兼职 (较浅色)</div>
+    </div>
+
+    <div id="schedule-container">
+        <!-- Schedule will be injected here by JavaScript -->
+    </div>
+</div>
+
+<!-- 右键菜单 -->
+<div class="context-menu" id="contextMenu">
+    <div class="context-menu-item" id="deleteSegment">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 6h18"></path>
+            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+        </svg>
+        删除时间条
+    </div>
+    <div class="context-menu-item" id="addWorkSegment">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        添加工作时段
+    </div>
+    <div class="context-menu-item" id="addRestSegment">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18z"></path>
+            <path d="M12 7v5l3 3"></path>
+        </svg>
+        添加休息时段
+    </div>
+    <div class="context-menu-item" id="savePng">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        保存为PNG图片
+    </div>
+</div>
+
+<!-- 加载提示 -->
+<div class="loading-overlay" id="loadingOverlay" style="display:none;">
+    <div class="loading-spinner"></div>
+    <div>正在生成图片，请稍候...</div>
+</div>
+
+<script>
+const timelineStartHour = 9; // 9 AM
+const timelineEndHourNextDay = 2; // 2 AM next day
+const totalTimelineHours = (24 - timelineStartHour) + timelineEndHourNextDay; // = 17 hours
+const totalHoursDisplayed = totalTimelineHours; // 从9:00到2:00总共17小时
+const totalTimelineMinutes = totalTimelineHours * 60; // 使用总时间小时数计算分钟
+
+// 工作人员信息
+const staffData = {
+    // 前厅人员
+    "Q_A": { name: "张胜", role_text: "前厅全职", role_class: "front-office full-time" },
+    "Q_B": { name: "李世麟", role_text: "前厅全职", role_class: "front-office full-time" },
+    "Q_C": { name: "王艳 （兼）", role_text: "前厅兼职", role_class: "front-office part-time" },
+    
+    // 后厨人员
+    "H_A": { name: "皱震平", role_text: "后厨全职", role_class: "back-kitchen full-time" },
+    "H_B": { name: "皱琦", role_text: "后厨全职", role_class: "back-kitchen full-time" },
+    "H_C": { name: "陈亮 (兼)", role_text: "后厨兼职", role_class: "back-kitchen part-time" },
+    
+    // 洗碗间人员
+    "X_A": { name: "石素英", role_text: "洗碗全职", role_class: "dishwasher full-time" }
+};
+
+function parseTimeToMinutesInTimeline(timeStr) {
+    const isNextDayMarker = timeStr.includes('+');
+    const cleanedTimeStr = timeStr.replace('+', '');
+    const [hoursStr, minutesStr] = cleanedTimeStr.split(':');
+    let hours = parseInt(hoursStr, 10);
+    const minutes = parseInt(minutesStr, 10);
+
+    // 调整跨天的时间
+    if (isNextDayMarker || (hours < timelineStartHour && hours <= timelineEndHourNextDay)) {
+        hours += 24;
+    }
+
+    // 计算在时间轴上的位置（相对于起始时间的格子数）
+    const hoursSinceStart = hours - timelineStartHour;
+    const cellIndex = hoursSinceStart;
+    // 转换为百分比位置，每个格子占 100/18 的宽度
+    return (cellIndex / 18) * 100;
+}
+
+const shiftsData = {
+    "S_Shift": { // 早班全职
+        segments: [
+            {type: "work", start_time: "09:00", end_time: "14:00", label: "工作"},
+            {type: "rest", start_time: "14:00", end_time: "16:00", label: "休息"},
+            {type: "work", start_time: "16:00", end_time: "21:00", label: "工作"}
+        ]
+    },
+    "FO_Late_Shift": { // 前厅晚班全职
+        segments: [
+            {type: "work", start_time: "14:00", end_time: "22:00", label: "工作"},
+            {type: "rest", start_time: "22:00", end_time: "00:00", label: "休息"},
+            {type: "work", start_time: "00:00", end_time: "02:00+", label: "工作"}
+        ]
+    },
+    "BK_Late_Shift": { // 后厨晚班全职
+        segments: [
+            {type: "work", start_time: "12:30", end_time: "22:00", label: "工作"},
+            {type: "rest", start_time: "22:00", end_time: "00:00", label: "休息"},
+            {type: "work", start_time: "00:00", end_time: "00:30+", label: "工作"}
+        ]
+    },
+    "DW_Shift": { // 洗碗间全职
+        segments: [
+            {type: "work", start_time: "13:30", end_time: "20:30", label: "工作"},
+            {type: "rest", start_time: "20:30", end_time: "22:30", label: "休息"},
+            {type: "work", start_time: "22:30", end_time: "01:30+", label: "工作"}
+        ]
+    },
+    "PT_Weekend_Morning": { // 兼职周末早高峰
+        segments: [
+            {type: "work", start_time: "10:00", end_time: "14:00", label: "周末支援"}
+        ]
+    },
+    "PT_FO_RestDay_Early": { // 兼职前厅早班支援 (补Q_A休)
+        segments: [
+            {type: "work", start_time: "09:00", end_time: "14:00", label: "早班支援"}
+        ]
+    },
+    "PT_FO_RestDay_Closing": { // 兼职前厅打烊支援 (补Q_B休)
+        segments: [
+            {type: "work", start_time: "21:00", end_time: "02:00+", label: "打烊支援"}
+        ]
+    },
+    "PT_BK_RestDay_Early": { // 兼职后厨早班支援 (补H_A休)
+        segments: [
+            {type: "work", start_time: "09:00", end_time: "12:30", label: "早班支援"}
+        ]
+    },
+    "PT_BK_RestDay_Closing": { // 兼职后厨打烊支援 (补H_B休)
+        segments: [
+            {type: "work", start_time: "21:00", end_time: "00:30+", label: "打烊支援"}
+        ]
+    }
+};
+
+const dailyScheduleData = {
+    "周一": [
+        {"staff": "Q_B", "shift_type": "FO_Late_Shift"},
+        {"staff": "Q_C", "shift_type": "PT_FO_RestDay_Early"},
+        {"staff": "H_A", "shift_type": "S_Shift"},
+        {"staff": "H_B", "shift_type": "BK_Late_Shift"},
+        {"staff": "X_A", "shift_type": "DW_Shift"},
+        {"staff": "Q_A", "shift_type": null, "is_resting": true}
+    ],
+    "周二": [
+        {"staff": "Q_A", "shift_type": "S_Shift"},
+        {"staff": "Q_C", "shift_type": "PT_FO_RestDay_Closing"},
+        {"staff": "H_A", "shift_type": "S_Shift"},
+        {"staff": "H_B", "shift_type": "BK_Late_Shift"},
+        {"staff": "X_A", "shift_type": "DW_Shift"},
+        {"staff": "Q_B", "shift_type": null, "is_resting": true}
+    ],
+    "周三": [
+        {"staff": "Q_A", "shift_type": "S_Shift"},
+        {"staff": "Q_B", "shift_type": "FO_Late_Shift"},
+        {"staff": "H_B", "shift_type": "BK_Late_Shift"},
+        {"staff": "H_C", "shift_type": "PT_BK_RestDay_Early"},
+        {"staff": "X_A", "shift_type": "DW_Shift"},
+        {"staff": "H_A", "shift_type": null, "is_resting": true}
+    ],
+    "周四": [
+        {"staff": "Q_A", "shift_type": "S_Shift"},
+        {"staff": "Q_B", "shift_type": "FO_Late_Shift"},
+        {"staff": "H_A", "shift_type": "S_Shift"},
+        {"staff": "H_C", "shift_type": "PT_BK_RestDay_Closing"},
+        {"staff": "X_A", "shift_type": "DW_Shift"},
+        {"staff": "H_B", "shift_type": null, "is_resting": true}
+    ],
+    "周五": [
+        {"staff": "Q_A", "shift_type": "S_Shift"},
+        {"staff": "Q_B", "shift_type": "FO_Late_Shift"},
+        {"staff": "H_A", "shift_type": "S_Shift"},
+        {"staff": "H_B", "shift_type": "BK_Late_Shift"},
+        {"staff": "X_A", "shift_type": null, "note": "洗碗工作由后厨分担", "is_resting": true}
+    ],
+    "周六 (周末高峰)": [
+        {"staff": "Q_A", "shift_type": "S_Shift"},
+        {"staff": "Q_B", "shift_type": "FO_Late_Shift"},
+        {"staff": "Q_C", "shift_type": "PT_Weekend_Morning"},
+        {"staff": "H_A", "shift_type": "S_Shift"},
+        {"staff": "H_B", "shift_type": "BK_Late_Shift"},
+        {"staff": "H_C", "shift_type": "PT_Weekend_Morning"},
+        {"staff": "X_A", "shift_type": "DW_Shift"}
+    ],
+    "周日 (周末高峰)": [
+        {"staff": "Q_A", "shift_type": "S_Shift"},
+        {"staff": "Q_B", "shift_type": "FO_Late_Shift"},
+        {"staff": "Q_C", "shift_type": "PT_Weekend_Morning"},
+        {"staff": "H_A", "shift_type": "S_Shift"},
+        {"staff": "H_B", "shift_type": "BK_Late_Shift"},
+        {"staff": "H_C", "shift_type": "PT_Weekend_Morning"},
+        {"staff": "X_A", "shift_type": "DW_Shift"}
+    ]
+};
+
+const container = document.getElementById('schedule-container');
+
+// 高峰期时间管理
+const peakHours = new Set();
+
+function togglePeakHour(hour) {
+    const hourKey = hour >= 24 ? hour - 24 : hour;
+    if (peakHours.has(hourKey)) {
+        peakHours.delete(hourKey);
+    } else {
+        peakHours.add(hourKey);
+    }
+    updatePeakTimeVisuals();
+}
+
+function updatePeakTimeVisuals() {
+    // 更新时间标签样式
+    document.querySelectorAll('.time-hour-label').forEach(label => {
+        const hour = parseInt(label.textContent);
+        label.classList.toggle('peak-time', peakHours.has(hour));
+    });
+
+    // 更新时间轴背景
+    document.querySelectorAll('.shift-timeline-bar').forEach(timeline => {
+        // 清除现有的高峰期背景
+        timeline.querySelectorAll('.peak-time-background').forEach(el => el.remove());
+
+        // 添加新的高峰期背景
+        peakHours.forEach(hour => {
+            const background = document.createElement('div');
+            background.className = 'peak-time-background';
+            
+            // 计算位置和宽度
+            let displayHour = hour;
+            if (hour < 9) {
+                displayHour += 24;
+            }
+            const position = ((displayHour - 9) / 18) * 100;
+            background.style.left = `${position}%`;
+            background.style.width = `${100/18}%`;
+            
+            timeline.appendChild(background);
+        });
+    });
+}
+
+// 修改时间轴生成代码
+function createTimeHeader() {
+    const timeHeaderWrapper = document.createElement('div');
+    timeHeaderWrapper.className = 'time-header-wrapper';
+    
+    const staffLabelPlaceholder = document.createElement('div');
+    staffLabelPlaceholder.className = 'staff-label-placeholder';
+    timeHeaderWrapper.appendChild(staffLabelPlaceholder);
+
+    const timeHeader = document.createElement('div');
+    timeHeader.className = 'time-header';
+
+    for (let i = 0; i <= totalTimelineHours; i++) {
+        const hour = (timelineStartHour + i) % 24;
+        const hourLabel = document.createElement('div');
+        hourLabel.className = 'time-hour-label';
+        hourLabel.textContent = `${String(hour).padStart(2, '0')}:00`;
+        
+        // 添加点击事件
+        hourLabel.addEventListener('click', () => {
+            togglePeakHour(hour);
+        });
+
+        timeHeader.appendChild(hourLabel);
+    }
+
+    timeHeaderWrapper.appendChild(timeHeader);
+    return timeHeaderWrapper;
+}
+
+// 修改初始化代码
+document.addEventListener('DOMContentLoaded', function() {
+    // 使用新的时间轴创建函数
+    for (const [dayName, staffList] of Object.entries(dailyScheduleData)) {
+        const dayBlock = document.createElement('div');
+        dayBlock.className = 'day-block';
+
+        // 获取当天休息的人员名单
+        const restingStaff = staffList
+            .filter(staff => staff.is_resting)
+            .map(staff => staffData[staff.staff].name);
+        
+        const restingStaffText = restingStaff.length > 0 ? 
+            `(${restingStaff.join('、')}休息)` : '';
+
+        const dayHeader = document.createElement('h2');
+        dayHeader.textContent = dayName + (restingStaffText ? ' ' + restingStaffText : '');
+        dayBlock.appendChild(dayHeader);
+
+        const timelineArea = document.createElement('div');
+        timelineArea.className = 'timeline-area';
+        
+        // 使用新的时间轴创建函数
+        timelineArea.appendChild(createTimeHeader());
+
+        // Create staff tracks
+        staffList.forEach(staffInfo => {
+            const trackRow = document.createElement('div');
+            trackRow.className = 'staff-track-row';
+
+            // 从staffData获取员工信息
+            const staffDetails = staffData[staffInfo.staff];
+            
+            const staffLabelDiv = document.createElement('div');
+            staffLabelDiv.className = 'staff-label';
+            staffLabelDiv.innerHTML = `${staffDetails.name} <small>${staffDetails.role_text}</small>`;
+            trackRow.appendChild(staffLabelDiv);
+
+            const shiftTimelineBar = document.createElement('div');
+            shiftTimelineBar.className = 'shift-timeline-bar';
+
+            if (staffInfo.shift_type && shiftsData[staffInfo.shift_type]) {
+                const shift = shiftsData[staffInfo.shift_type];
+                shift.segments.forEach(segment => {
+                    const segmentDiv = document.createElement('div');
+                    
+                    const roleBaseClass = staffDetails.role_class.split(' ')[0];
+                    const typeClass = staffDetails.role_class.includes('part-time') ? 'part-time' : 'full-time';
+
+                    segmentDiv.className = `shift-segment ${segment.type} ${roleBaseClass} ${typeClass}`;
+                    segmentDiv.textContent = segment.label;
+
+                    // 使用新的计算方法，确保对齐到格子边界
+                    const startPercent = parseTimeToMinutesInTimeline(segment.start_time);
+                    const endPercent = parseTimeToMinutesInTimeline(segment.end_time);
+                    
+                    // 如果结束时间包含 '+' 且是整点，需要确保覆盖到该小时的结束
+                    const isEndNextDay = segment.end_time.includes('+');
+                    const endMinutes = segment.end_time.replace('+', '').split(':')[1];
+                    const widthPercent = endPercent - startPercent + (isEndNextDay && endMinutes === '00' ? (100/18) : 0);
+
+                    segmentDiv.style.left = `${startPercent}%`;
+                    segmentDiv.style.width = `${widthPercent}%`;
+                    
+                    shiftTimelineBar.appendChild(segmentDiv);
+                });
+            } else if (staffInfo.note) {
+                const noteDiv = document.createElement('div');
+                noteDiv.className = 'note';
+                noteDiv.textContent = staffInfo.note;
+                shiftTimelineBar.appendChild(noteDiv);
+            }
+
+            trackRow.appendChild(shiftTimelineBar);
+            timelineArea.appendChild(trackRow);
+        });
+        
+        dayBlock.appendChild(timelineArea);
+        container.appendChild(dayBlock);
+    }
+
+    initializeDragAndResize();
+});
+
+// 右键菜单功能
+const contextMenu = document.getElementById('contextMenu');
+const loadingOverlay = document.getElementById('loadingOverlay');
+const deleteSegmentBtn = document.getElementById('deleteSegment');
+const addWorkSegmentBtn = document.getElementById('addWorkSegment');
+const addRestSegmentBtn = document.getElementById('addRestSegment');
+let currentRightClickedSegment = null;
+let currentRightClickedTimeline = null;
+let rightClickX = 0;
+
+// 阻止默认右键菜单
+document.addEventListener('contextmenu', function(event) {
+    event.preventDefault();
+    rightClickX = event.clientX;
+    
+    // 检查是否点击在时间条上
+    const segment = event.target.closest('.shift-segment');
+    const timeline = event.target.closest('.shift-timeline-bar');
+    
+    // 重置所有菜单项显示状态
+    deleteSegmentBtn.style.display = 'none';
+    addWorkSegmentBtn.style.display = 'none';
+    addRestSegmentBtn.style.display = 'none';
+    
+    if (segment) {
+        // 点击在时间条上
+        currentRightClickedSegment = segment;
+        currentRightClickedTimeline = null;
+        deleteSegmentBtn.style.display = 'flex';
+    } else if (timeline) {
+        // 点击在空轨道上
+        currentRightClickedTimeline = timeline;
+        currentRightClickedSegment = null;
+        addWorkSegmentBtn.style.display = 'flex';
+        addRestSegmentBtn.style.display = 'flex';
+    }
+    
+    // 显示自定义菜单
+    contextMenu.style.display = 'block';
+    contextMenu.style.left = event.pageX + 'px';
+    contextMenu.style.top = event.pageY + 'px';
+});
+
+// 点击其他区域隐藏菜单
+document.addEventListener('click', function() {
+    contextMenu.style.display = 'none';
+    currentRightClickedSegment = null;
+    currentRightClickedTimeline = null;
+});
+
+// 删除时间条功能
+deleteSegmentBtn.addEventListener('click', function() {
+    if (currentRightClickedSegment) {
+        currentRightClickedSegment.remove();
+        contextMenu.style.display = 'none';
+        currentRightClickedSegment = null;
+    }
+});
+
+// 添加工作时段功能
+addWorkSegmentBtn.addEventListener('click', function() {
+    if (currentRightClickedTimeline) {
+        const timelineRect = currentRightClickedTimeline.getBoundingClientRect();
+        const clickPositionPercent = ((rightClickX - timelineRect.left) / timelineRect.width) * 100;
+        // 将点击位置吸附到网格
+        const snappedPosition = Math.floor(clickPositionPercent / (100/18)) * (100/18);
+        
+        // 获取员工角色信息
+        const staffTrackRow = currentRightClickedTimeline.closest('.staff-track-row');
+        const staffLabel = staffTrackRow.querySelector('.staff-label');
+        const roleClass = staffLabel.textContent.includes('前厅') ? 'front-office' :
+                         staffLabel.textContent.includes('后厨') ? 'back-kitchen' :
+                         'dishwasher';
+        const typeClass = staffLabel.textContent.includes('兼职') ? 'part-time' : 'full-time';
+        
+        // 创建新的时间条
+        const newSegment = document.createElement('div');
+        newSegment.className = `shift-segment work ${roleClass} ${typeClass}`;
+        newSegment.textContent = '工作';
+        newSegment.style.left = `${snappedPosition}%`;
+        newSegment.style.width = `${100/18}%`; // 一格的宽度
+        
+        // 添加拖拽和调整手柄的样式
+        newSegment.style.position = 'absolute';
+        newSegment.style.height = '100%';
+        newSegment.style.display = 'flex';
+        newSegment.style.alignItems = 'center';
+        newSegment.style.justifyContent = 'center';
+        newSegment.style.borderRadius = '4px';
+        newSegment.style.color = 'white';
+        newSegment.style.fontSize = '0.75em';
+        newSegment.style.cursor = 'move';
+        newSegment.style.userSelect = 'none';
+        newSegment.style.zIndex = '1';
+        
+        currentRightClickedTimeline.appendChild(newSegment);
+        
+        // 重新初始化拖拽功能
+        initializeDragAndResize();
+        
+        contextMenu.style.display = 'none';
+        currentRightClickedTimeline = null;
+    }
+});
+
+// 添加休息时段功能
+addRestSegmentBtn.addEventListener('click', function() {
+    if (currentRightClickedTimeline) {
+        const timelineRect = currentRightClickedTimeline.getBoundingClientRect();
+        const clickPositionPercent = ((rightClickX - timelineRect.left) / timelineRect.width) * 100;
+        // 将点击位置吸附到网格
+        const snappedPosition = Math.floor(clickPositionPercent / (100/18)) * (100/18);
+        
+        // 创建新的休息时间条
+        const newSegment = document.createElement('div');
+        newSegment.className = 'shift-segment rest';
+        newSegment.textContent = '休息';
+        newSegment.style.left = `${snappedPosition}%`;
+        newSegment.style.width = `${100/18}%`; // 一格的宽度
+        
+        // 添加休息时段的特殊样式
+        newSegment.style.position = 'absolute';
+        newSegment.style.height = '100%';
+        newSegment.style.display = 'flex';
+        newSegment.style.alignItems = 'center';
+        newSegment.style.justifyContent = 'center';
+        newSegment.style.borderRadius = '4px';
+        newSegment.style.backgroundColor = '#bdc3c7';
+        newSegment.style.color = '#333';
+        newSegment.style.border = '1px dashed #7f8c8d';
+        newSegment.style.fontSize = '0.75em';
+        newSegment.style.cursor = 'move';
+        newSegment.style.userSelect = 'none';
+        newSegment.style.zIndex = '5';
+        
+        currentRightClickedTimeline.appendChild(newSegment);
+        
+        // 重新初始化拖拽功能
+        initializeDragAndResize();
+        
+        contextMenu.style.display = 'none';
+        currentRightClickedTimeline = null;
+    }
+});
+
+// 保存为PNG功能
+document.getElementById('savePng').addEventListener('click', async function() {
+    try {
+        // 隐藏右键菜单
+        contextMenu.style.display = 'none';
+        
+        // 显示加载提示
+        loadingOverlay.style.display = 'flex';
+        
+        // 引入html2canvas库
+        if (!window.html2canvas) {
+            await loadScript('https://html2canvas.hertzen.com/dist/html2canvas.min.js');
+        }
+        
+        // 生成截图
+        const mainContainer = document.querySelector('.main-container');
+        const canvas = await html2canvas(mainContainer, {
+            scale: 2, // 提高质量
+            useCORS: true,
+            logging: false,
+            backgroundColor: '#ffffff'
+        });
+        
+        // 转换为图片并下载
+        const link = document.createElement('a');
+        link.download = '餐厅排班表_' + new Date().toISOString().split('T')[0] + '.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    } catch (error) {
+        console.error('保存图片时发生错误:', error);
+        alert('保存图片时发生错误: ' + error.message);
+    } finally {
+        // 隐藏加载提示
+        loadingOverlay.style.display = 'none';
+    }
+});
+
+// 动态加载脚本
+function loadScript(src) {
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
+}
+
+// 更新拖拽功能
+function initializeDragAndResize() {
+    let isDragging = false;
+    let isResizingLeft = false;
+    let isResizingRight = false;
+    let currentSegment = null;
+    let startX = 0;
+    let startLeft = 0;
+    let startWidth = 0;
+    let timeTooltip = null;
+    let dragStartTime = 0;
+    let wasDragged = false;
+
+    // 为所有时间条（包括新添加的）添加事件监听
+    document.querySelectorAll('.shift-segment').forEach(segment => {
+        // 移除旧的事件监听器（如果有的话）
+        segment.removeEventListener('mousedown', handleMouseDown);
+        segment.removeEventListener('mousemove', handleMouseMove);
+        
+        // 添加新的事件监听器
+        segment.addEventListener('mousedown', handleMouseDown);
+        segment.addEventListener('mousemove', handleMouseMove);
+    });
+
+    function handleMouseDown(e) {
+        const segment = e.target.closest('.shift-segment');
+        if (!segment) return;
+
+        dragStartTime = Date.now();
+        wasDragged = false;
+
+        const rect = segment.getBoundingClientRect();
+        if (e.clientX > rect.right - 8) {
+            isResizingRight = true;
+        } else if (e.clientX < rect.left + 8) {
+            isResizingLeft = true;
+        } else {
+            isDragging = true;
+        }
+        
+        currentSegment = segment;
+        startX = e.clientX;
+        startLeft = parseFloat(segment.style.left);
+        startWidth = parseFloat(segment.style.width);
+        
+        segment.classList.add('dragging');
+    }
+
+    function handleMouseMove(e) {
+        const segment = e.target.closest('.shift-segment');
+        if (!segment) return;
+
+        // 显示调整手柄
+        if (e.clientX > segment.getBoundingClientRect().right - 8 ||
+            e.clientX < segment.getBoundingClientRect().left + 8) {
+            segment.style.cursor = 'ew-resize';
+        } else {
+            segment.style.cursor = 'move';
+        }
+    }
+
+    document.addEventListener('mousemove', function(e) {
+        if (isDragging || isResizingLeft || isResizingRight) {
+            wasDragged = true;
+        }
+        if (!isDragging && !isResizingLeft && !isResizingRight) return;
+        
+        const timeline = currentSegment.closest('.shift-timeline-bar');
+        const timelineRect = timeline.getBoundingClientRect();
+        const deltaX = ((e.clientX - startX) / timelineRect.width) * 100;
+
+        if (isDragging) {
+            let newLeft = startLeft + deltaX;
+            newLeft = Math.max(0, Math.min(100 - startWidth, newLeft));
+            newLeft = snapToGrid(newLeft);
+            currentSegment.style.left = `${newLeft}%`;
+        } else if (isResizingLeft) {
+            let newLeft = startLeft + deltaX;
+            let newWidth = startWidth - deltaX;
+            
+            // 确保不超出边界
+            if (newLeft >= 0 && newWidth >= 100/18) {
+                newLeft = snapToGrid(newLeft);
+                newWidth = startWidth + (startLeft - newLeft);
+                if (newLeft + newWidth <= 100) {
+                    currentSegment.style.left = `${newLeft}%`;
+                    currentSegment.style.width = `${newWidth}%`;
+                }
+            }
+        } else if (isResizingRight) {
+            let newWidth = startWidth + deltaX;
+            newWidth = Math.max(100/18, Math.min(100 - startLeft, newWidth));
+            newWidth = snapToGrid(newWidth);
+            currentSegment.style.width = `${newWidth}%`;
+        }
+
+        updateTimeTooltip(currentSegment, e);
+    });
+
+    document.addEventListener('mouseup', function(e) {
+        if (currentSegment) {
+            currentSegment.classList.remove('dragging');
+        }
+        if (timeTooltip) {
+            timeTooltip.style.display = 'none';
+        }
+        isDragging = false;
+        isResizingLeft = false;
+        isResizingRight = false;
+        currentSegment = null;
+    });
+
+    // 创建时间提示元素
+    function createTimeTooltip() {
+        const tooltip = document.createElement('div');
+        tooltip.className = 'time-tooltip';
+        document.body.appendChild(tooltip);
+        return tooltip;
+    }
+
+    // 将百分比位置转换为时间
+    function percentToTime(percent) {
+        const totalMinutes = percent * (18 * 60) / 100;
+        const hours = Math.floor(totalMinutes / 60) + 9; // 从9点开始
+        const minutes = Math.floor(totalMinutes % 60);
+        let displayHours = hours;
+        if (hours >= 24) {
+            displayHours = hours - 24;
+        }
+        return `${String(displayHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    }
+
+    // 将位置吸附到网格
+    function snapToGrid(percent) {
+        const cellWidth = 100 / 18; // 每个格子的宽度（百分比）
+        const cellIndex = Math.round(percent / cellWidth);
+        return cellIndex * cellWidth;
+    }
+
+    // 更新时间提示位置和内容
+    function updateTimeTooltip(segment, event) {
+        if (!timeTooltip) {
+            timeTooltip = createTimeTooltip();
+        }
+        
+        const segmentRect = segment.getBoundingClientRect();
+        const left = parseFloat(segment.style.left);
+        const width = parseFloat(segment.style.width);
+        
+        const startTime = percentToTime(left);
+        const endTime = percentToTime(left + width);
+        
+        timeTooltip.textContent = `${startTime} - ${endTime}`;
+        timeTooltip.style.display = 'block';
+        timeTooltip.style.left = `${event.pageX + 10}px`;
+        timeTooltip.style.top = `${event.pageY - 30}px`;
+    }
+}
+</script>
+
 </body>
-</html> 
+</html>
