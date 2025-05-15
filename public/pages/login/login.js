@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabaseClient.js';
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
     const messageElement = document.getElementById('message');
+    const submitButton = loginForm ? loginForm.querySelector('button[type="submit"]') : null; // 获取提交按钮
 
     // 检查是否已经登录，如果登录了，则直接跳转到 dashboard
     // 这部分也可以放在 common.js 中，由 dashboard.js 调用
@@ -13,9 +14,14 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('用户已登录，准备跳转到dashboard (当前被注释)');
     }
 
-    if (loginForm) {
+    if (loginForm && submitButton) { // 确保按钮存在
         loginForm.addEventListener('submit', async (event) => {
             event.preventDefault(); // 阻止表单默认提交行为
+
+            // 禁用按钮并更改文本
+            submitButton.disabled = true;
+            submitButton.textContent = '登录中...';
+            messageElement.textContent = ''; // 清除之前的消息
 
             const phone = document.getElementById('phone').value;
             const password = document.getElementById('password').value;
@@ -23,6 +29,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!phone || !password) {
                 messageElement.textContent = '手机号和密码不能为空！';
                 messageElement.className = 'message error';
+                // 恢复按钮状态
+                submitButton.disabled = false;
+                submitButton.textContent = '登录';
                 return;
             }
 
@@ -43,10 +52,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 //     messageElement.textContent = '登录失败：手机号或密码错误。';
                 // }
                 messageElement.className = 'message error';
+                // 恢复按钮状态
+                submitButton.disabled = false;
+                submitButton.textContent = '登录';
             } else if (data) {
                 if (data.status !== 'active') {
                     messageElement.textContent = '登录失败：该账户已被禁用。';
                     messageElement.className = 'message error';
+                    // 恢复按钮状态
+                    submitButton.disabled = false;
+                    submitButton.textContent = '登录';
                     return;
                 }
 
@@ -78,6 +93,9 @@ document.addEventListener('DOMContentLoaded', () => {
                  // 如果 data 为 null 且 error 也为 null (理论上不应该发生，除非.single()行为有变)
                  messageElement.textContent = '登录失败：手机号或密码错误。';
                  messageElement.className = 'message error';
+                 // 恢复按钮状态
+                submitButton.disabled = false;
+                submitButton.textContent = '登录';
             }
         });
     }

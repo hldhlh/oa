@@ -3,10 +3,16 @@ import { supabase } from '../../lib/supabaseClient.js';
 document.addEventListener('DOMContentLoaded', () => {
     const signupForm = document.getElementById('signupForm');
     const messageElement = document.getElementById('message');
+    const submitButton = signupForm ? signupForm.querySelector('button[type="submit"]') : null; // 获取提交按钮
 
-    if (signupForm) {
+    if (signupForm && submitButton) { // 确保按钮存在
         signupForm.addEventListener('submit', async (event) => {
             event.preventDefault(); // 阻止表单默认提交行为
+
+            // 禁用按钮并更改文本
+            submitButton.disabled = true;
+            submitButton.textContent = '注册中...';
+            messageElement.textContent = ''; // 清除之前的消息
 
             const fullName = document.getElementById('fullName').value;
             const phone = document.getElementById('phone').value;
@@ -17,6 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!fullName || !phone || !password) {
                 messageElement.textContent = '姓名、手机号和密码不能为空！';
                 messageElement.className = 'message error';
+                // 恢复按钮状态
+                submitButton.disabled = false;
+                submitButton.textContent = '注册';
                 return;
             }
 
@@ -57,6 +66,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 messageElement.textContent = '注册过程中发生未知错误。';
                 messageElement.className = 'message error';
             }
+
+            // 无论成功或失败，都恢复按钮状态
+            submitButton.disabled = false;
+            submitButton.textContent = '注册';
         });
     }
 }); 
