@@ -1,0 +1,73 @@
+body {
+    font-family: sans-serif;
+    margin: 0;
+    background-color: #f4f4f4;
+    color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.container {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    width: 90%;
+    max-width: 800px; /* 限制最大宽度 */
+}
+
+header h1 {
+    color: #5a3e36; /* 品牌颜色 */
+    margin-bottom: 20px;
+}
+
+nav ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0 0 20px 0;
+    display: flex;
+    flex-wrap: wrap; /* 允许换行 */
+    justify-content: center;
+}
+
+nav ul li {
+    margin: 5px 15px;
+}
+
+nav ul li a {
+    text-decoration: none;
+    color: #5a3e36;
+    font-weight: bold;
+    padding: 8px 12px;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+}
+
+nav ul li a:hover,
+nav ul li a.active {
+    background-color: #e0c8b0; /* 悬停或激活时的背景色 */
+    color: #3d2c21;
+}
+
+main p {
+    line-height: 1.6;
+}
+
+#userInfo {
+    margin-top: 15px;
+    font-size: 0.9em;
+    color: #666;
+}
+
+/* 响应式设计 */
+@media (max-width: 600px) {
+    nav ul {
+        flex-direction: column; /* 在小屏幕上垂直排列导航链接 */
+    }
+    nav ul li {
+        margin: 10px 0;
+    }
+} 

@@ -58,6 +58,10 @@ Supabase 使用：
 在 supabaseClient.js 中初始化 Supabase 客户端。
 使用此客户端进行所有数据库交互和认证。
 
+HTML 页面：
+
+禁止使用footer页脚
+
 
 注释语言：
 
