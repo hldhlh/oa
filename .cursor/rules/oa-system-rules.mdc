@@ -1,0 +1,65 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+OA 系统是一个使用 HTML、CSS 和 JavaScript 构建的前端应用，使用 Supabase 提供后端服务。使用自定义 CSS 进行样式设计。
+
+目录结构
+.
+├─ .gitignore
+├─ README.md
+├─ package.json         # 仅记录依赖和启动脚本（可选）
+│
+└─ public/              # 直接部署这整棵目录即可
+   ├─ lib/              # 全局模块（按需被各页 import）
+   │  ├─ supabaseClient.js    # supabase-js 初始化（可用 CDN ESM）
+   │  └─ common.js           # 登录态检查、导航高亮、工具函数
+   │
+   ├─ pages/            # 多页面（MPA）＋按需加载
+   │  ├─ login/
+   │  │  ├─ index.html  # <script type="module" src="./login.js">
+   │  │  ├─ login.js    # 本页逻辑：import '../lib/...'
+   │  │  └─ login.css   # 本页样式
+   │  │
+   │  ├─ signup/
+   │  │  ├─ index.html
+   │  │  ├─ signup.js
+   │  │  └─ signup.css
+   │  │
+   │  ├─ dashboard/
+   │  │  ├─ index.html
+   │  │  ├─ dashboard.js
+   │  │  └─ dashboard.css
+   │  │
+   │  ├─ apply/
+   │  │  ├─ index.html
+   │  │  ├─ apply.js
+   │  │  └─ apply.css
+   │  │
+   │  └─ approvals/
+   │     ├─ index.html
+   │     ├─ approvals.js
+   │     └─ approvals.css
+   │
+   └─ assets/           # 公共静态资源（图片、favicon…）
+      └─ favicon.ico
+
+关键指南
+
+CSS 处理：
+
+使用自定义 CSS 进行样式设计。
+不使用任何 CSS 框架如 Tailwind CSS。
+所有样式应在相应的 styles.css 中编写，并在对应的 HTML 文件中链接。
+
+Supabase 使用：
+
+在 supabaseClient.js 中初始化 Supabase 客户端。
+使用此客户端进行所有数据库交互和认证。
+
+
+注释语言：
+
+在生成的代码中，请使用简洁易懂的中文注释。
+

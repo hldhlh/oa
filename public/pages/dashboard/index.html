@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>仪表盘 - 今岭火锅店OA系统</title>
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="icon" href="../../assets/favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <header>
+        <h1>今岭火锅店 OA 系统</h1>
+        <nav id="mainNav">
+            <a href="../dashboard/index.html" class="active">仪表盘</a>
+            <a href="../apply/index.html">申请</a> <!-- 示例 -->
+            <a href="../approvals/index.html">审批</a> <!-- 示例 -->
+            <button id="logoutButton">注销</button>
+        </nav>
+    </header>
+
+    <main class="container">
+        <h2>欢迎, <span id="userFullName"></span>!</h2>
+        <p>这里是您的仪表盘。</p>
+        <div id="userInfo">
+            <p><strong>手机号:</strong> <span id="userPhone"></span></p>
+            <p><strong>职位:</strong> <span id="userPosition"></span></p>
+            <p><strong>角色:</strong> <span id="userRole"></span></p>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 今岭火锅店</p>
+    </footer>
+
+    <script type="module" src="dashboard.js"></script>
+</body>
+</html> 
