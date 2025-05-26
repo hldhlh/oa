@@ -27,6 +27,13 @@
     }
     h1 { text-align: center; margin-bottom: 30px; }
     h2 { margin-top: 30px; margin-bottom: 15px; font-size: 1.5em; }
+    
+    h2 .resting-staff {
+        font-size: 0.7em;
+        color: #7f8c8d;
+        font-weight: normal;
+        font-style: italic;
+    }
 
     .control-panel {
         display: flex;
@@ -120,7 +127,8 @@
         position: relative;
     }
     .time-hour-label {
-        flex: 1 0 0;
+        flex: none;
+        width: calc(100% / 18);
         text-align: center;
         padding: 8px 0;
         font-size: 0.8em;
@@ -135,11 +143,11 @@
     }
     .time-hour-label:first-child {
         padding-left: 0;
-        text-align: left;
+        text-align: center;
     }
     .time-hour-label:last-child {
         border-right: none;
-        text-align: right;
+        text-align: center;
         padding-right: 0;
     }
     .time-hour-label:hover {
@@ -191,13 +199,40 @@
         background-color: #f0f0f0;
     }
 
+    .staff-label.dragging {
+        opacity: 0.5;
+        transform: scale(1.05);
+        z-index: 1000;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    .staff-track-row.drag-over {
+        border-top: 3px solid #3498db;
+    }
+
+    .staff-label {
+        user-select: none;
+        cursor: grab;
+    }
+
+    .staff-label:active {
+        cursor: grabbing;
+    }
+
     .shift-timeline-bar {
         flex-grow: 1;
         height: 40px;
         background-color: #fff;
         position: relative;
-        background-image: linear-gradient(to right, #e0e0e0 1px, transparent 1px);
-        background-size: calc(100%/18) 100%;
+        background-image: 
+            radial-gradient(circle, #ddd 1px, transparent 1px),       /* 半点小圆点, 先绘制 */
+            linear-gradient(to right, #e0e0e0 1px, transparent 1px);  /* 整点竖线, 后绘制会覆盖圆点（如果位置重合）*/
+        background-size: 
+            calc(100%/18) 100%,  /* 圆点图案每小时重复一次 */
+            calc(100%/18) 100%;  /* 竖线图案每小时重复一次 */
+        background-position:
+            calc(100%/36) center, /* 圆点位于每小时的中间 (半点位置), 垂直居中 */
+            0 0;                  /* 竖线从每小时的开始位置绘制 */
     }
 
     .peak-time-background {
@@ -381,6 +416,54 @@
         background: rgba(0,0,0,0.5);
         z-index: 1000;
     }
+    
+    /* 确认对话框需要更高的z-index以显示在其他模态框之上 */
+    #confirmDialog {
+        z-index: 1100;
+    }
+    
+    /* 自定义提示对话框样式 */
+    #alertDialog {
+        z-index: 1200;
+    }
+    
+    .alert-dialog-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        min-width: 300px;
+        max-width: 500px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        text-align: center;
+    }
+    
+    .alert-dialog-message {
+        margin-bottom: 20px;
+        font-size: 16px;
+        line-height: 1.5;
+        color: #333;
+        white-space: pre-line;
+    }
+    
+    .alert-dialog-button {
+        background: #3498db;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        min-width: 80px;
+    }
+    
+    .alert-dialog-button:hover {
+        background: #2980b9;
+    }
+
     .modal-content {
         position: absolute;
         top: 50%;
@@ -471,7 +554,6 @@
         <button class="control-btn" onclick="showImportModal()">📥 导入数据</button>
         <button class="control-btn" onclick="addNewDay()">➕ 添加日期</button>
         <button class="control-btn" onclick="showStaffManagementModal()">👥 员工管理</button>
-        <button class="control-btn" onclick="loadSampleData()">📋 示例数据</button>
         <button class="control-btn danger" onclick="clearAllData()">🗑️ 清空数据</button>
     </div>
 
@@ -528,7 +610,16 @@
             <line x1="12" y1="11" x2="12" y2="17"></line>
             <line x1="9" y1="14" x2="15" y2="14"></line>
         </svg>
-        添加新成员
+        添加已有员工
+    </div>
+    <div class="context-menu-item" id="addAllStaff">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+        添加所有已有员工
     </div>
     <div class="context-menu-item" id="savePng">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -557,32 +648,27 @@
     </div>
 </div>
 
+<!-- 自定义提示对话框 -->
+<div id="alertDialog" class="modal" style="display: none;">
+    <div class="alert-dialog-content">
+        <div id="alertMessage" class="alert-dialog-message"></div>
+        <button class="alert-dialog-button" onclick="customAlert.close()">确定</button>
+    </div>
+</div>
+
 <!-- 添加新成员的弹窗 -->
 <div id="addStaffModal" class="modal">
     <div class="modal-content">
-        <h3>添加新成员</h3>
+        <h3>添加已有员工</h3>
         <div class="form-group">
-            <label>姓名：</label>
-            <input type="text" id="newStaffName" placeholder="请输入员工姓名">
-        </div>
-        <div class="form-group">
-            <label>职位：</label>
-            <select id="newStaffRole">
-                <option value="前厅">前厅</option>
-                <option value="后厨">后厨</option>
-                <option value="洗碗间">洗碗间</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>类型：</label>
-            <select id="newStaffType">
-                <option value="全职">全职</option>
-                <option value="兼职">兼职</option>
+            <label>选择员工：</label>
+            <select id="existingStaffSelect">
+                <option value="">请选择员工</option>
             </select>
         </div>
         <div class="modal-buttons">
             <button class="btn-cancel" onclick="closeModal('addStaffModal')">取消</button>
-            <button class="btn-primary" onclick="addNewStaffMember()">确定</button>
+            <button class="btn-primary" onclick="addExistingStaffMember()">确定</button>
         </div>
     </div>
 </div>
@@ -593,8 +679,38 @@
         <h3>员工管理</h3>
         <div id="staffList"></div>
         <div class="modal-buttons">
-            <button class="btn-primary" onclick="showAddStaffModal()">添加员工</button>
+            <button class="btn-primary" onclick="showAddNewStaffModal()">添加新员工</button>
             <button class="btn-cancel" onclick="closeModal('staffManagementModal')">关闭</button>
+        </div>
+    </div>
+</div>
+
+<!-- 添加新员工弹窗 -->
+<div id="addNewStaffModal" class="modal">
+    <div class="modal-content">
+        <h3>添加新员工</h3>
+        <div class="form-group">
+            <label>员工姓名：</label>
+            <input type="text" id="newStaffName" placeholder="请输入员工姓名">
+        </div>
+        <div class="form-group">
+            <label>工作部门：</label>
+            <select id="newStaffRole">
+                <option value="前厅" selected>前厅</option>
+                <option value="后厨">后厨</option>
+                <option value="洗碗间">洗碗间</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>工作类型：</label>
+            <select id="newStaffType">
+                <option value="全职" selected>全职</option>
+                <option value="兼职">兼职</option>
+            </select>
+        </div>
+        <div class="modal-buttons">
+            <button class="btn-cancel" onclick="closeModal('addNewStaffModal')">取消</button>
+            <button class="btn-primary" onclick="addNewStaffConfirm()">确定</button>
         </div>
     </div>
 </div>
@@ -942,19 +1058,54 @@ let peakHours = new Set(dataManager.getPeakHours());
 // 工具函数
 function percentToTime(percent) {
     const totalMinutes = percent * (18 * 60) / 100;
-    const hours = Math.floor(totalMinutes / 60) + 9;
-    const minutes = Math.floor(totalMinutes % 60);
-    let displayHours = hours;
-    if (hours >= 24) {
-        displayHours = hours - 24;
+    let hours = Math.floor(totalMinutes / 60) + 9;
+    let minutes = Math.round(totalMinutes % 60);
+    
+    // 确保分钟对齐到0或30
+    if (minutes <= 15) {
+        minutes = 0;
+    } else if (minutes <= 45) {
+        minutes = 30;
+    } else {
+        minutes = 0;
+        hours += 1; // 如果分钟接近60，进位到下一小时
     }
+    
+    let displayHours = hours;
+    if (displayHours >= 24) {
+        displayHours = displayHours - 24;
+    }
+    
     return `${String(displayHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 }
 
 function snapToGrid(percent) {
-    const cellWidth = 100 / 18;
+    const cellWidth = 100 / 36; // 支持半小时对齐 (18小时 * 2 = 36个半小时段)
     const cellIndex = Math.round(percent / cellWidth);
     return cellIndex * cellWidth;
+}
+
+function calculateDurationHours(widthPercent) {
+    const totalMinutes = (widthPercent / 100) * (18 * 60); // 18小时总时长
+    const hours = totalMinutes / 60;
+    return hours;
+}
+
+function formatDuration(hours) {
+    if (hours === 0.5) {
+        return '0.5h';
+    } else if (hours % 1 === 0) {
+        return `${Math.round(hours)}h`;
+    } else {
+        return `${hours.toFixed(1)}h`;
+    }
+}
+
+function updateSegmentLabel(segment) {
+    const width = parseFloat(segment.style.width);
+    const duration = calculateDurationHours(width);
+    const baseLabel = segment.classList.contains('rest') ? '休息' : '工作';
+    segment.textContent = `${baseLabel} (${formatDuration(duration)})`;
 }
 
 function getRoleClass(role) {
@@ -1024,7 +1175,8 @@ function createTimeHeader() {
     const timeHeader = document.createElement('div');
     timeHeader.className = 'time-header';
 
-    for (let i = 0; i <= totalTimelineHours; i++) {
+    // 创建18个时间标签，每个标签代表一个小时时段
+    for (let i = 0; i < 18; i++) {
         const hour = (timelineStartHour + i) % 24;
         const hourLabel = document.createElement('div');
         hourLabel.className = 'time-hour-label';
@@ -1052,8 +1204,7 @@ function renderSchedule() {
         container.innerHTML = `
             <div class="empty-state">
                 <h3>暂无排班数据</h3>
-                <p>点击上方按钮开始创建排班表，或加载示例数据</p>
-                <button class="control-btn" onclick="loadSampleData()">加载示例数据</button>
+                <p>点击上方按钮开始创建排班表</p>
                 <button class="control-btn" onclick="addNewDay()">添加新日期</button>
             </div>
         `;
@@ -1071,10 +1222,24 @@ function renderSchedule() {
         dayBlockHeader.className = 'day-block-header';
         
         const dayHeader = document.createElement('h2');
-        dayHeader.textContent = dayName;
         dayHeader.style.margin = '0';
         dayHeader.style.border = 'none';
         dayHeader.style.paddingBottom = '0';
+        
+        // 计算休息的员工
+        const scheduledStaffIds = new Set(daySchedule.map(item => item.staffId));
+        const allStaffIds = Object.keys(staffData);
+        const restingStaff = allStaffIds.filter(staffId => !scheduledStaffIds.has(staffId));
+        
+        // 构建日期标题文本
+        dayHeader.textContent = dayName;
+        if (restingStaff.length > 0) {
+            const restingNames = restingStaff.map(staffId => staffData[staffId].name).join('、');
+            const restingSpan = document.createElement('span');
+            restingSpan.className = 'resting-staff';
+            restingSpan.textContent = ` (休息：${restingNames})`;
+            dayHeader.appendChild(restingSpan);
+        }
         
         const deleteDayBtn = document.createElement('button');
         deleteDayBtn.className = 'delete-day-btn';
@@ -1113,7 +1278,12 @@ function renderSchedule() {
                 const typeClass = getTypeClass(staffInfo.type);
 
                 segmentDiv.className = `shift-segment ${segment.type} ${roleClass} ${typeClass}`;
-                segmentDiv.textContent = segment.label;
+                
+                // 计算并显示时长
+                const duration = calculateDurationHours(segment.width);
+                const baseLabel = segment.type === 'rest' ? '休息' : '工作';
+                segmentDiv.textContent = `${baseLabel} (${formatDuration(duration)})`;
+                
                 segmentDiv.style.left = `${segment.left}%`;
                 segmentDiv.style.width = `${segment.width}%`;
                 
@@ -1130,6 +1300,7 @@ function renderSchedule() {
 
     initializeDragAndResize();
     updatePeakTimeVisuals();
+    initializeStaffSorting();
 }
 
 // 删除日期
@@ -1246,19 +1417,21 @@ function initializeDragAndResize() {
             let newLeft = startLeft + deltaX;
             let newWidth = startWidth - deltaX;
             
-            if (newLeft >= 0 && newWidth >= 100/18) {
+            if (newLeft >= 0 && newWidth >= 100/36) { // 最小半小时
                 newLeft = snapToGrid(newLeft);
                 newWidth = startWidth + (startLeft - newLeft);
                 if (newLeft + newWidth <= 100) {
                     currentSegment.style.left = `${newLeft}%`;
                     currentSegment.style.width = `${newWidth}%`;
+                    updateSegmentLabel(currentSegment); // 更新标签
                 }
             }
         } else if (isResizingRight) {
             let newWidth = startWidth + deltaX;
-            newWidth = Math.max(100/18, Math.min(100 - startLeft, newWidth));
+            newWidth = Math.max(100/36, Math.min(100 - startLeft, newWidth)); // 最小半小时
             newWidth = snapToGrid(newWidth);
             currentSegment.style.width = `${newWidth}%`;
+            updateSegmentLabel(currentSegment); // 更新标签
         }
 
         updateTimeTooltip(currentSegment, e);
@@ -1303,6 +1476,138 @@ function initializeDragAndResize() {
     }
 }
 
+// 员工排序拖拽功能
+function initializeStaffSorting() {
+    let isDraggingStaff = false;
+    let draggedStaffRow = null;
+    let dragStartY = 0;
+    let dragStartIndex = 0;
+    let currentDayName = null;
+
+    document.querySelectorAll('.staff-label').forEach(staffLabel => {
+        staffLabel.removeEventListener('mousedown', handleStaffMouseDown);
+        staffLabel.addEventListener('mousedown', handleStaffMouseDown);
+    });
+
+    function handleStaffMouseDown(e) {
+        // 防止与右键菜单冲突
+        if (e.button !== 0) return;
+        
+        e.preventDefault();
+        isDraggingStaff = true;
+        draggedStaffRow = e.target.closest('.staff-track-row');
+        dragStartY = e.clientY;
+        
+        const dayBlock = draggedStaffRow.closest('.day-block');
+        currentDayName = dayBlock.dataset.dayName;
+        
+        // 获取当前员工在列表中的索引
+        const allStaffRows = Array.from(dayBlock.querySelectorAll('.staff-track-row'));
+        dragStartIndex = allStaffRows.indexOf(draggedStaffRow);
+        
+        draggedStaffRow.querySelector('.staff-label').classList.add('dragging');
+        
+        document.addEventListener('mousemove', handleStaffMouseMove);
+        document.addEventListener('mouseup', handleStaffMouseUp);
+    }
+
+    function handleStaffMouseMove(e) {
+        if (!isDraggingStaff || !draggedStaffRow) return;
+
+        const dayBlock = draggedStaffRow.closest('.day-block');
+        const allStaffRows = Array.from(dayBlock.querySelectorAll('.staff-track-row'));
+        
+        // 清除所有高亮
+        allStaffRows.forEach(row => row.classList.remove('drag-over'));
+        
+        // 找到鼠标位置对应的员工行
+        let targetRow = null;
+        let insertPosition = -1;
+        
+        allStaffRows.forEach((row, index) => {
+            if (row === draggedStaffRow) return;
+            
+            const rect = row.getBoundingClientRect();
+            const rowCenter = rect.top + rect.height / 2;
+            
+            if (e.clientY < rowCenter && (!targetRow || index < insertPosition)) {
+                targetRow = row;
+                insertPosition = index;
+            } else if (e.clientY >= rowCenter && index > insertPosition) {
+                insertPosition = index + 1;
+            }
+        });
+        
+        // 高亮目标位置
+        if (insertPosition >= 0 && insertPosition < allStaffRows.length) {
+            allStaffRows[insertPosition].classList.add('drag-over');
+        } else if (insertPosition >= allStaffRows.length && allStaffRows.length > 0) {
+            allStaffRows[allStaffRows.length - 1].classList.add('drag-over');
+        }
+    }
+
+    function handleStaffMouseUp(e) {
+        if (!isDraggingStaff || !draggedStaffRow) return;
+        
+        const dayBlock = draggedStaffRow.closest('.day-block');
+        const allStaffRows = Array.from(dayBlock.querySelectorAll('.staff-track-row'));
+        
+        // 清除样式
+        draggedStaffRow.querySelector('.staff-label').classList.remove('dragging');
+        allStaffRows.forEach(row => row.classList.remove('drag-over'));
+        
+        // 计算新位置
+        let newIndex = dragStartIndex;
+        allStaffRows.forEach((row, index) => {
+            if (row === draggedStaffRow) return;
+            
+            const rect = row.getBoundingClientRect();
+            const rowCenter = rect.top + rect.height / 2;
+            
+            if (e.clientY < rowCenter && index <= dragStartIndex) {
+                newIndex = index;
+            } else if (e.clientY >= rowCenter && index >= dragStartIndex) {
+                newIndex = index + 1;
+            }
+        });
+        
+        // 如果位置发生变化，则重新排序
+        if (newIndex !== dragStartIndex && newIndex >= 0) {
+            reorderStaffInDay(currentDayName, dragStartIndex, newIndex);
+        }
+        
+        // 清理
+        isDraggingStaff = false;
+        draggedStaffRow = null;
+        currentDayName = null;
+        document.removeEventListener('mousemove', handleStaffMouseMove);
+        document.removeEventListener('mouseup', handleStaffMouseUp);
+    }
+}
+
+// 重新排序员工
+function reorderStaffInDay(dayName, fromIndex, toIndex) {
+    const daySchedule = dataManager.getDaySchedule(dayName);
+    
+    if (fromIndex < 0 || fromIndex >= daySchedule.length || 
+        toIndex < 0 || toIndex > daySchedule.length) {
+        return;
+    }
+    
+    // 调整toIndex（如果向后移动，需要减1）
+    if (toIndex > fromIndex) {
+        toIndex--;
+    }
+    
+    // 移动数组元素
+    const movedItem = daySchedule.splice(fromIndex, 1)[0];
+    daySchedule.splice(toIndex, 0, movedItem);
+    
+    // 保存并重新渲染
+    dataManager.setDaySchedule(dayName, daySchedule);
+    renderSchedule();
+}
+
 // 右键菜单功能
 const contextMenu = document.getElementById('contextMenu');
 const loadingOverlay = document.getElementById('loadingOverlay');
@@ -1336,6 +1641,7 @@ document.addEventListener('contextmenu', function(event) {
     document.getElementById('addWorkSegment').style.display = 'none';
     document.getElementById('addRestSegment').style.display = 'none';
     document.getElementById('addNewStaff').style.display = 'none';
+    document.getElementById('addAllStaff').style.display = 'none';
     document.getElementById('savePng').style.display = 'none';
 
     let showContextMenu = false;
@@ -1361,6 +1667,7 @@ document.addEventListener('contextmenu', function(event) {
         // This covers clicking on day-block header, or empty areas within day-block's timeline-area
         if (currentDayBlockForStaff) { // Ensure dayBlock context is valid
              document.getElementById('addNewStaff').style.display = 'flex';
+             document.getElementById('addAllStaff').style.display = 'flex';
         }
         showContextMenu = true;
     } else if (mainContainer) { 
@@ -1417,6 +1724,21 @@ const confirmDialog = {
     }
 };
 
+// 自定义提示对话框
+const customAlert = {
+    dialog: document.getElementById('alertDialog'),
+    messageEl: document.getElementById('alertMessage'),
+
+    show(message) {
+        this.messageEl.textContent = message;
+        this.dialog.style.display = 'block';
+    },
+
+    close() {
+        this.dialog.style.display = 'none';
+    }
+};
+
 // 模态框管理
 function showModal(modalId) {
     document.getElementById(modalId).style.display = 'block';
@@ -1436,9 +1758,18 @@ document.getElementById('deleteStaff').addEventListener('click', function() {
         const staffData = dataManager.getStaffData();
         const staffName = staffData[staffId]?.name || '未知员工';
         
-        confirmDialog.show(`确定要删除员工"${staffName}"吗？这将同时删除该员工在所有日期的排班信息。`, (confirmed) => {
+        // 获取当前日期
+        const dayBlock = staffRowToDelete.closest('.day-block');
+        const dayName = dayBlock.dataset.dayName;
+        
+        confirmDialog.show(`确定要将"${staffName}"从"${dayName}"的排班中移除吗？`, (confirmed) => {
             if (confirmed) {
-                dataManager.removeStaff(staffId);
+                // 只删除当前日期的排班，不删除员工数据
+                const daySchedule = dataManager.getDaySchedule(dayName);
+                const updatedSchedule = daySchedule.filter(item => item.staffId !== staffId);
+                dataManager.setDaySchedule(dayName, updatedSchedule);
+                
+                // 重新渲染以更新休息提示
                 renderSchedule();
             }
             if(currentStaffRow === staffRowToDelete) {
@@ -1483,9 +1814,10 @@ document.getElementById('addWorkSegment').addEventListener('click', function() {
         
         const newSegment = document.createElement('div');
         newSegment.className = `shift-segment work ${roleClass} ${typeClass}`;
-        newSegment.textContent = '工作';
+        const defaultWidth = 100/36; // 默认半小时
+        newSegment.textContent = `工作 (${formatDuration(calculateDurationHours(defaultWidth))})`;
         newSegment.style.left = `${snappedPosition}%`;
-        newSegment.style.width = `${100/18}%`;
+        newSegment.style.width = `${defaultWidth}%`;
         
         currentRightClickedTimeline.appendChild(newSegment);
         
@@ -1505,9 +1837,10 @@ document.getElementById('addRestSegment').addEventListener('click', function() {
         
         const newSegment = document.createElement('div');
         newSegment.className = 'shift-segment rest';
-        newSegment.textContent = '休息';
+        const defaultWidth = 100/36; // 默认半小时
+        newSegment.textContent = `休息 (${formatDuration(calculateDurationHours(defaultWidth))})`;
         newSegment.style.left = `${snappedPosition}%`;
-        newSegment.style.width = `${100/18}%`;
+        newSegment.style.width = `${defaultWidth}%`;
         
         currentRightClickedTimeline.appendChild(newSegment);
         
@@ -1520,7 +1853,12 @@ document.getElementById('addRestSegment').addEventListener('click', function() {
 });
 
 document.getElementById('addNewStaff').addEventListener('click', function() {
-    showModal('addStaffModal');
+    showAddStaffModal();
+    contextMenu.style.display = 'none';
+});
+
+document.getElementById('addAllStaff').addEventListener('click', function() {
+    addAllStaffModal();
     contextMenu.style.display = 'none';
 });
 
@@ -1547,56 +1885,87 @@ document.getElementById('savePng').addEventListener('click', async function() {
         link.click();
     } catch (error) {
         console.error('保存图片时发生错误:', error);
-        alert('保存图片时发生错误: ' + error.message);
+        customAlert.show('保存图片时发生错误: ' + error.message);
     } finally {
         loadingOverlay.style.display = 'none';
     }
 });
 
 // 添加新员工
-function addNewStaffMember() {
-    const name = document.getElementById('newStaffName').value.trim();
-    const role = document.getElementById('newStaffRole').value;
-    const type = document.getElementById('newStaffType').value;
+function addExistingStaffMember() {
+    const selectedStaffId = document.getElementById('existingStaffSelect').value;
     
-    if (!name) {
-        alert('请输入员工姓名');
+    if (!selectedStaffId) {
+        customAlert.show('请选择要添加的员工');
         return;
     }
     
     if (!currentDayBlockForStaff) {
-        alert('请先选择要添加到哪一天');
+        customAlert.show('请先选择要添加到哪一天');
         return;
     }
     
-    // 生成新的员工ID
-    const newId = generateStaffId();
+    const staffData = dataManager.getStaffData();
+    const staffInfo = staffData[selectedStaffId];
     
-    // 添加员工到数据
-    dataManager.addStaff(newId, {
-        name: name,
-        role: role,
-        type: type
-    });
+    if (!staffInfo) {
+        customAlert.show('该员工不存在');
+        return;
+    }
     
-    // 添加到当前日期的排班
     const dayName = currentDayBlockForStaff.dataset.dayName;
     const daySchedule = dataManager.getDaySchedule(dayName);
+    
+    // 检查是否已经存在该员工
+    const existingStaff = daySchedule.find(item => item.staffId === selectedStaffId);
+    if (existingStaff) {
+        customAlert.show(`员工"${staffInfo.name}"已经在该日期的排班中`);
+        return;
+    }
+    
+    // 添加到当前日期的排班
     daySchedule.push({
-        staffId: newId,
+        staffId: selectedStaffId,
         segments: []
     });
     dataManager.setDaySchedule(dayName, daySchedule);
     
-    // 重新渲染
     renderSchedule();
-    
     closeModal('addStaffModal');
-    document.getElementById('newStaffName').value = '';
     currentDayBlockForStaff = null;
 }
 
 function showAddStaffModal() {
+    if (!currentDayBlockForStaff) {
+        customAlert.show('请先选择要添加到哪一天');
+        return;
+    }
+    
+    const staffData = dataManager.getStaffData();
+    const dayName = currentDayBlockForStaff.dataset.dayName;
+    const daySchedule = dataManager.getDaySchedule(dayName);
+    
+    // 获取当前日期已经添加的员工ID
+    const existingStaffIds = new Set(daySchedule.map(item => item.staffId));
+    
+    const existingStaffSelect = document.getElementById('existingStaffSelect');
+    existingStaffSelect.innerHTML = '<option value="">请选择员工</option>';
+    
+    // 只显示还未添加到当前日期的员工
+    Object.entries(staffData).forEach(([staffId, staffInfo]) => {
+        if (!existingStaffIds.has(staffId)) {
+            const option = document.createElement('option');
+            option.value = staffId;
+            option.textContent = `${staffInfo.name} (${staffInfo.role}-${staffInfo.type})`;
+            existingStaffSelect.appendChild(option);
+        }
+    });
+    
+    if (existingStaffSelect.children.length === 1) {
+        customAlert.show('所有员工都已添加到该日期的排班中，或者还没有员工数据。\n请先在员工管理中添加员工。');
+        return;
+    }
+    
     showModal('addStaffModal');
 }
 
@@ -1667,9 +2036,9 @@ function saveDataFromEditor() {
         
         renderSchedule();
         closeModal('dataManagementModal');
-        alert('数据保存成功！');
+        customAlert.show('数据保存成功！');
     } catch (error) {
-        alert('数据格式错误：' + error.message);
+        customAlert.show('数据格式错误：' + error.message);
     }
 }
 
@@ -1696,7 +2065,7 @@ function importData() {
     try {
         const dataText = document.getElementById('importDataEditor').value.trim();
         if (!dataText) {
-            alert('请输入要导入的数据');
+            customAlert.show('请输入要导入的数据');
             return;
         }
         
@@ -1709,9 +2078,9 @@ function importData() {
         renderSchedule();
         closeModal('importModal');
         document.getElementById('importDataEditor').value = '';
-        alert('数据导入成功！');
+        customAlert.show('数据导入成功！');
     } catch (error) {
-        alert('导入失败：' + error.message);
+        customAlert.show('导入失败：' + error.message);
     }
 }
 
@@ -1722,13 +2091,13 @@ function addNewDay() {
 function addNewDayConfirm() {
     const dayName = document.getElementById('newDayName').value.trim();
     if (!dayName) {
-        alert('请输入日期名称');
+        customAlert.show('请输入日期名称');
         return;
     }
     
     const scheduleData = dataManager.getScheduleData();
     if (scheduleData[dayName]) {
-        alert('该日期已存在');
+        customAlert.show('该日期已存在');
         return;
     }
     
@@ -1744,18 +2113,7 @@ function clearAllData() {
             dataManager.clearAllData();
             peakHours = new Set();
             renderSchedule();
-            alert('所有数据已清空');
-        }
-    });
-}
-
-function loadSampleData() {
-    confirmDialog.show('确定要加载示例数据吗？这将覆盖当前所有数据！', (confirmed) => {
-        if (confirmed) {
-            dataManager.loadSampleData();
-            peakHours = new Set(dataManager.getPeakHours());
-            renderSchedule();
-            alert('示例数据加载成功！');
+            customAlert.show('所有数据已清空');
         }
     });
 }
@@ -1786,6 +2144,88 @@ document.addEventListener('DOMContentLoaded', function() {
         renderSchedule();
     }
 });
+
+// 添加新员工相关函数
+function showAddNewStaffModal() {
+    // 清空表单
+    document.getElementById('newStaffName').value = '';
+    document.getElementById('newStaffRole').value = '前厅'; // 设置默认值
+    document.getElementById('newStaffType').value = '全职'; // 设置默认值
+    
+    showModal('addNewStaffModal');
+}
+
+function addNewStaffConfirm() {
+    const name = document.getElementById('newStaffName').value.trim();
+    const role = document.getElementById('newStaffRole').value;
+    const type = document.getElementById('newStaffType').value;
+    
+    // 验证输入
+    if (!name) {
+        customAlert.show('请输入员工姓名');
+        return;
+    }
+    
+    // 检查是否已存在同名员工
+    const staffData = dataManager.getStaffData();
+    const existingStaff = Object.values(staffData).find(staff => staff.name === name);
+    if (existingStaff) {
+        customAlert.show(`员工"${name}"已存在，请使用不同的姓名`);
+        return;
+    }
+    
+    // 生成员工ID并添加员工
+    const staffId = generateStaffId();
+    const staffInfo = { name, role, type };
+    
+    dataManager.addStaff(staffId, staffInfo);
+    
+    // 关闭弹窗并刷新员工列表
+    closeModal('addNewStaffModal');
+    showStaffManagementModal(); // 刷新员工管理弹窗
+    renderSchedule(); // 刷新排班表以更新休息提示
+    
+    customAlert.show(`员工"${name}"添加成功！`);
+}
+
+// 添加所有已有员工功能
+function addAllStaffModal() {
+    if (!currentDayBlockForStaff) {
+        customAlert.show('请先选择要添加到哪一天');
+        return;
+    }
+
+    const staffData = dataManager.getStaffData();
+    const dayName = currentDayBlockForStaff.dataset.dayName;
+    const daySchedule = dataManager.getDaySchedule(dayName);
+    
+    // 获取当前日期已经添加的员工ID
+    const existingStaffIds = new Set(daySchedule.map(item => item.staffId));
+    
+    // 找出所有未添加的员工
+    const unaddedStaff = Object.entries(staffData).filter(([staffId]) => !existingStaffIds.has(staffId));
+    
+    if (unaddedStaff.length === 0) {
+        customAlert.show('所有员工都已添加到该日期的排班中');
+        return;
+    }
+
+    confirmDialog.show(`确定要将所有未添加的员工(${unaddedStaff.length}人)添加到"${dayName}"的排班中吗？`, (confirmed) => {
+        if (confirmed) {
+            // 添加所有未添加的员工
+            unaddedStaff.forEach(([staffId]) => {
+                daySchedule.push({
+                    staffId: staffId,
+                    segments: []
+                });
+            });
+            
+            dataManager.setDaySchedule(dayName, daySchedule);
+            renderSchedule();
+            customAlert.show(`成功添加${unaddedStaff.length}名员工到排班表中`);
+        }
+    });
+}
 </script>
 
 </body>
