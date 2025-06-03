@@ -12,30 +12,39 @@ class HotpotOAApp {
     async init() {
         try {
             showLoading(true);
-            
+
             // 初始化Supabase
-            initSupabase();
-            
+            if (typeof initSupabase === 'function') {
+                initSupabase();
+            }
+
             // 初始化数据库管理器
-            this.dbManager = initDatabase();
-            
+            if (typeof initDatabase === 'function') {
+                this.dbManager = initDatabase();
+            }
+
             // 初始化认证管理器
-            this.authManager = initAuth();
-            
+            if (typeof initAuth === 'function') {
+                this.authManager = initAuth();
+            }
+
             // 设置全局错误处理
             this.setupErrorHandling();
-            
+
             // 设置页面事件监听
             this.setupEventListeners();
-            
+
             // 检查认证状态
             await this.checkAuthAndRedirect();
-            
+
             this.isInitialized = true;
-            
+
         } catch (error) {
             console.error('应用初始化失败:', error);
-            showToast('应用初始化失败，请刷新页面重试', 'error');
+            // 如果是在登录页面，不显示错误提示
+            if (!window.location.pathname.includes('index.html') && window.location.pathname !== '/') {
+                showToast('应用初始化失败，请刷新页面重试', 'error');
+            }
         } finally {
             hideLoading();
         }
@@ -45,19 +54,23 @@ class HotpotOAApp {
     async checkAuthAndRedirect() {
         const currentPath = window.location.pathname;
         const isAuthPage = currentPath.includes('index.html') || currentPath === '/';
-        
+
         try {
-            const user = await SupabaseAuth.getCurrentUser();
-            
-            if (user && isAuthPage) {
-                // 已登录用户访问登录页，重定向到仪表板
-                window.location.href = 'dashboard.html';
-            } else if (!user && !isAuthPage) {
-                // 未登录用户访问其他页面，重定向到登录页
-                window.location.href = 'index.html';
+            // 只有在有认证功能时才检查
+            if (typeof SupabaseAuth !== 'undefined') {
+                const user = await SupabaseAuth.getCurrentUser();
+
+                if (user && isAuthPage) {
+                    // 已登录用户访问登录页，重定向到仪表板
+                    window.location.href = 'dashboard.html';
+                } else if (!user && !isAuthPage) {
+                    // 未登录用户访问其他页面，重定向到登录页
+                    window.location.href = 'index.html';
+                }
             }
         } catch (error) {
-            console.error('检查认证状态失败:', error);
+            console.log('认证检查跳过:', error.message);
+            // 在登录页面时，认证错误是正常的
             if (!isAuthPage) {
                 window.location.href = 'index.html';
             }

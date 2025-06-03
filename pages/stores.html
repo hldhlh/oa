@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>门店管理 - 火锅店OA系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-50">
+    <!-- 加载中状态 -->
+    <div id="loading" class="fixed inset-0 bg-white flex items-center justify-center z-50">
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
+            <p class="mt-4 text-gray-600">正在加载...</p>
+        </div>
+    </div>
+
+    <div class="flex flex-col h-screen bg-gray-50">
+        <!-- 头部组件 - 填充整个宽度 -->
+        <div id="header-container" class="w-full"></div>
+
+        <!-- 主体区域 - 侧边栏和内容区域 -->
+        <div class="flex flex-1 overflow-hidden">
+            <!-- 侧边栏 -->
+            <div id="sidebar-container"></div>
+
+            <!-- 主内容区 -->
+            <div class="flex-1 flex flex-col overflow-hidden">
+
+            <!-- 主内容 -->
+            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
+                <!-- 页面标题 -->
+                <div class="mb-6">
+                    <h1 class="text-2xl font-bold text-gray-900">门店管理</h1>
+                    <p class="text-gray-600">管理所有门店信息、状态和运营数据</p>
+                </div>
+
+                <!-- 操作栏 -->
+                <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                    <div class="flex items-center space-x-4">
+                        <button class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                            新增门店
+                        </button>
+                        <button class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                            </svg>
+                            导出数据
+                        </button>
+                    </div>
+                    <div class="mt-4 sm:mt-0">
+                        <div class="relative">
+                            <input type="text" placeholder="搜索门店..." 
+                                   class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500">
+                            <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 统计卡片 -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-blue-100">
+                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-600">总门店数</p>
+                                <p class="text-2xl font-bold text-gray-900">4</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-green-100">
+                                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-600">营业中</p>
+                                <p class="text-2xl font-bold text-gray-900">3</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-yellow-100">
+                                <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-600">维护中</p>
+                                <p class="text-2xl font-bold text-gray-900">1</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-red-100">
+                                <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-600">月营业额</p>
+                                <p class="text-2xl font-bold text-gray-900">¥280万</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 门店列表 -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-medium text-gray-900">门店列表</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">门店信息</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">地址</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">经理</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">月营业额</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="h-10 w-10 bg-red-100 rounded-full flex items-center justify-center">
+                                                <span class="text-red-600 font-medium">总</span>
+                                            </div>
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-gray-900">总店</div>
+                                                <div class="text-sm text-gray-500">ID: ST001</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        北京市朝阳区建国路88号
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                            营业中
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">张经理</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">¥85万</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button class="text-red-600 hover:text-red-900 mr-3">编辑</button>
+                                        <button class="text-gray-600 hover:text-gray-900">查看</button>
+                                    </td>
+                                </tr>
+                                <!-- 更多门店数据... -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- 提示框 -->
+    <div id="toast" class="hidden fixed top-4 right-4 px-4 py-3 rounded z-50">
+        <span id="toast-message"></span>
+    </div>
+
+    <script src="../config/supabase.js"></script>
+    <script src="../config/constants.js"></script>
+    <script src="../assets/js/utils.js"></script>
+    <script src="../assets/js/supabase-client.js"></script>
+    <script src="../assets/js/database.js"></script>
+    <script src="../assets/js/auth.js"></script>
+    <script src="../assets/js/app.js"></script>
+    <script>
+        // 页面初始化
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                // 检查用户认证状态
+                await checkAuthStatus();
+                
+                // 加载页面组件
+                await loadComponents();
+                
+                // 初始化页面数据
+                await initStorePage();
+                
+            } catch (error) {
+                console.error('页面初始化失败:', error);
+                window.location.href = '../index.html';
+            }
+        });
+
+        // 检查认证状态
+        async function checkAuthStatus() {
+            try {
+                if (typeof SupabaseAuth !== 'undefined') {
+                    const user = await SupabaseAuth.getCurrentUser();
+                    if (!user) {
+                        window.location.href = '../index.html';
+                        return;
+                    }
+                } else {
+                    window.location.href = '../index.html';
+                    return;
+                }
+            } catch (error) {
+                console.error('认证检查失败:', error);
+                window.location.href = '../index.html';
+                return;
+            }
+        }
+
+        // 加载组件
+        async function loadComponents() {
+            await loadComponent('sidebar-container', '../components/sidebar.html');
+            await loadComponent('header-container', '../components/header.html');
+        }
+
+        // 初始化门店页面
+        async function initStorePage() {
+            hideLoading();
+            console.log('门店管理页面初始化完成');
+        }
+    </script>
+</body>
+</html>

@@ -9,17 +9,27 @@
 
 </head>
 <body class="bg-gray-50">
-    <div id="app" class="min-h-screen">
-        <!-- 加载中状态 -->
-        <div id="loading" class="fixed inset-0 bg-white flex items-center justify-center z-50">
-            <div class="text-center">
-                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
-                <p class="mt-4 text-gray-600">正在加载...</p>
-            </div>
+    <!-- 加载中状态 -->
+    <div id="loading" class="fixed inset-0 bg-white flex items-center justify-center z-50">
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
+            <p class="mt-4 text-gray-600">正在加载...</p>
         </div>
+    </div>
 
-        <!-- 登录/注册页面 -->
-        <div id="auth-page" class="hidden min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="flex h-screen bg-gray-50">
+        <!-- 侧边栏 -->
+        <div id="sidebar-container"></div>
+
+        <!-- 主内容区 -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- 头部 -->
+            <div id="header-container"></div>
+
+            <!-- 主内容 -->
+            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50">
+                <!-- 登录/注册页面 -->
+                <div id="auth-page" class="min-h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
             <div class="max-w-md w-full space-y-8">
                 <div>
                     <div class="mx-auto h-16 w-16 bg-red-600 rounded-full flex items-center justify-center">
@@ -35,10 +45,10 @@
 
                 <!-- 登录/注册切换标签 -->
                 <div class="flex rounded-lg bg-gray-100 p-1">
-                    <button id="login-tab" class="flex-1 py-2 px-4 text-sm font-medium rounded-md text-red-600 bg-white shadow-sm transition-all duration-200">
+                    <button id="login-tab" class="flex-1 py-2 px-4 text-sm font-medium rounded-md text-red-600 bg-white shadow-sm">
                         登录
                     </button>
-                    <button id="register-tab" class="flex-1 py-2 px-4 text-sm font-medium rounded-md text-gray-500 hover:text-gray-700 transition-all duration-200">
+                    <button id="register-tab" class="flex-1 py-2 px-4 text-sm font-medium rounded-md text-gray-500 hover:text-gray-700">
                         注册
                     </button>
                 </div>
@@ -87,7 +97,7 @@
                 </form>
 
                 <!-- 注册表单 -->
-                <form id="register-form" class="hidden mt-8 space-y-6 transition-opacity duration-300">
+                <form id="register-form" class="hidden mt-8 space-y-6">
                     <div class="rounded-md shadow-sm -space-y-px">
                         <div>
                             <input id="register-name" name="name" type="text" required
@@ -146,12 +156,14 @@
                         </button>
                     </div>
                 </form>
-            </div>
-        </div>
+                    </div>
+                </div>
 
-        <!-- 主应用界面 -->
-        <div id="main-app" class="hidden">
-            <!-- 这里将加载dashboard.html的内容 -->
+                <!-- 仪表板内容区域 -->
+                <div id="dashboard-content" class="hidden p-6">
+                    <!-- 仪表板内容将在这里加载 -->
+                </div>
+            </main>
         </div>
     </div>
 
@@ -161,14 +173,18 @@
     </div>
 
     <script src="config/supabase.js"></script>
-    <script src="assets/js/supabase-client.js"></script>
-    <script src="assets/js/auth.js"></script>
+    <script src="config/constants.js"></script>
     <script src="assets/js/utils.js"></script>
+    <script src="assets/js/supabase-client.js"></script>
+    <script src="assets/js/database.js"></script>
+    <script src="assets/js/auth.js"></script>
     <script src="assets/js/app.js"></script>
 
     <script>
         // 登录/注册页面逻辑
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
+            // 加载框架组件
+            await loadFrameworkComponents();
             const loginTab = document.getElementById('login-tab');
             const registerTab = document.getElementById('register-tab');
             const loginForm = document.getElementById('login-form');
@@ -182,16 +198,8 @@
                 registerTab.classList.add('text-gray-500');
                 registerTab.classList.remove('text-red-600', 'bg-white', 'shadow-sm');
 
-                // 添加淡入淡出效果
+                loginForm.classList.remove('hidden');
                 registerForm.classList.add('hidden');
-                setTimeout(() => {
-                    loginForm.classList.remove('hidden');
-                    loginForm.style.opacity = '0';
-                    setTimeout(() => {
-                        loginForm.style.opacity = '1';
-                    }, 10);
-                }, 50);
-
                 authSubtitle.textContent = '请登录您的账户';
             }
 
@@ -202,16 +210,8 @@
                 loginTab.classList.add('text-gray-500');
                 loginTab.classList.remove('text-red-600', 'bg-white', 'shadow-sm');
 
-                // 添加淡入淡出效果
+                registerForm.classList.remove('hidden');
                 loginForm.classList.add('hidden');
-                setTimeout(() => {
-                    registerForm.classList.remove('hidden');
-                    registerForm.style.opacity = '0';
-                    setTimeout(() => {
-                        registerForm.style.opacity = '1';
-                    }, 10);
-                }, 50);
-
                 authSubtitle.textContent = '创建新账户';
             }
 

@@ -35,7 +35,8 @@ class AuthManager {
                 this.showAuthPage();
             }
         } catch (error) {
-            console.error('检查认证状态失败:', error);
+            // 如果是认证相关错误，直接显示登录页面
+            console.log('用户未登录，显示登录页面');
             this.showAuthPage();
         }
     }
@@ -200,20 +201,32 @@ class AuthManager {
     // 显示认证页面
     showAuthPage() {
         hideLoading();
-        document.getElementById('main-app').classList.add('hidden');
-        document.getElementById('auth-page').classList.remove('hidden');
+        const mainApp = document.getElementById('main-app');
+        const authPage = document.getElementById('auth-page');
+
+        if (mainApp) mainApp.classList.add('hidden');
+        if (authPage) authPage.classList.remove('hidden');
+
+        // 如果不在登录页面，重定向到登录页面
+        if (!window.location.pathname.endsWith('index.html') && window.location.pathname !== '/') {
+            window.location.href = 'index.html';
+        }
     }
 
     // 重定向到仪表板
     redirectToDashboard() {
         hideLoading();
-        document.getElementById('auth-page').classList.add('hidden');
-        
-        // 如果当前页面不是仪表板，则重定向
+        const authPage = document.getElementById('auth-page');
+        const mainApp = document.getElementById('main-app');
+
+        if (authPage) authPage.classList.add('hidden');
+
+        // 如果当前页面是登录页面，则重定向到仪表板
         if (window.location.pathname.endsWith('index.html') || window.location.pathname === '/') {
             window.location.href = 'dashboard.html';
         } else {
-            document.getElementById('main-app').classList.remove('hidden');
+            // 如果已经在其他页面，显示主应用内容
+            if (mainApp) mainApp.classList.remove('hidden');
         }
     }
 

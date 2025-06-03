@@ -69,11 +69,15 @@ const SupabaseAuth = {
     async getCurrentUser() {
         const client = getSupabaseClient();
         const { data: { user }, error } = await client.auth.getUser();
-        
+
         if (error) {
+            // 如果是会话缺失错误，返回null而不是抛出错误
+            if (error.message.includes('Auth session missing') || error.message.includes('No session')) {
+                return null;
+            }
             throw new Error(error.message);
         }
-        
+
         return user;
     },
 

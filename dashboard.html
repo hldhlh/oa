@@ -9,20 +9,23 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-gray-50">
-    <div class="flex h-screen">
-        <!-- 侧边栏 -->
-        <div id="sidebar-container"></div>
+    <div class="flex flex-col h-screen">
+        <!-- 头部组件 - 填充整个宽度 -->
+        <div id="header-container" class="w-full"></div>
 
-        <!-- 主内容区 -->
-        <div class="flex-1 flex flex-col overflow-hidden">
-            <!-- 头部 -->
-            <div id="header-container"></div>
+        <!-- 主体区域 - 侧边栏和内容区域 -->
+        <div class="flex flex-1 overflow-hidden">
+            <!-- 侧边栏 -->
+            <div id="sidebar-container"></div>
+
+            <!-- 主内容区 -->
+            <div class="flex-1 flex flex-col overflow-hidden">
 
             <!-- 主内容 -->
             <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
                 <!-- 欢迎信息 -->
                 <div class="mb-6">
-                    <h1 class="text-2xl font-bold text-gray-900">欢迎回来！</h1>
+                    <h1 class="text-2xl font-bold text-gray-900">欢迎<span id="welcome-user-name">XXX</span>回来！</h1>
                     <p class="text-gray-600">今天是 <span id="current-date"></span></p>
                 </div>
 
@@ -89,12 +92,16 @@
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                     <div class="bg-white rounded-lg shadow p-6">
                         <h3 class="text-lg font-medium text-gray-900 mb-4">销售趋势</h3>
-                        <canvas id="sales-chart" width="400" height="200"></canvas>
+                        <div class="h-64 relative">
+                            <canvas id="sales-chart" class="absolute inset-0 w-full h-full"></canvas>
+                        </div>
                     </div>
 
                     <div class="bg-white rounded-lg shadow p-6">
                         <h3 class="text-lg font-medium text-gray-900 mb-4">门店业绩排行</h3>
-                        <canvas id="store-performance-chart" width="400" height="200"></canvas>
+                        <div class="h-64 relative">
+                            <canvas id="store-performance-chart" class="absolute inset-0 w-full h-full"></canvas>
+                        </div>
                     </div>
                 </div>
 
@@ -125,22 +132,99 @@
     </div>
 
     <script src="config/supabase.js"></script>
+    <script src="config/constants.js"></script>
+    <script src="assets/js/utils.js"></script>
     <script src="assets/js/supabase-client.js"></script>
     <script src="assets/js/database.js"></script>
-    <script src="assets/js/utils.js"></script>
+    <script src="assets/js/auth.js"></script>
+    <script src="assets/js/app.js"></script>
     <script>
         // 初始化仪表板
         document.addEventListener('DOMContentLoaded', async function() {
-            await loadComponents();
-            await loadDashboardData();
-            initCharts();
-            updateDateTime();
+            try {
+                // 检查用户认证状态
+                await checkAuthStatus();
+
+                // 加载页面组件和数据
+                await loadComponents();
+                await loadUserInfo();
+                await loadDashboardData();
+                initCharts();
+                updateDateTime();
+            } catch (error) {
+                console.error('仪表板初始化失败:', error);
+                // 如果初始化失败，重定向到登录页面
+                window.location.href = 'index.html';
+            }
         });
+
+        // 检查认证状态
+        async function checkAuthStatus() {
+            try {
+                if (typeof SupabaseAuth !== 'undefined') {
+                    const user = await SupabaseAuth.getCurrentUser();
+                    if (!user) {
+                        // 用户未登录，重定向到登录页面
+                        window.location.href = 'index.html';
+                        return;
+                    }
+                } else {
+                    // 认证模块未加载，重定向到登录页面
+                    window.location.href = 'index.html';
+                    return;
+                }
+            } catch (error) {
+                console.error('认证检查失败:', error);
+                window.location.href = 'index.html';
+                return;
+            }
+        }
 
         // 加载组件
         async function loadComponents() {
             await loadComponent('sidebar-container', 'components/sidebar.html');
             await loadComponent('header-container', 'components/header.html');
+        }
+
+        // 加载用户信息
+        async function loadUserInfo() {
+            try {
+                // 直接从Supabase获取当前用户
+                if (typeof SupabaseAuth !== 'undefined') {
+                    const user = await SupabaseAuth.getCurrentUser();
+                    if (user) {
+                        // 尝试从数据库获取用户资料
+                        const db = getDatabase();
+                        const profile = await db.getUserProfile(user.id);
+
+                        let userName = '用户';
+                        if (profile && profile.name) {
+                            userName = profile.name;
+                        } else if (user.user_metadata && user.user_metadata.name) {
+                            userName = user.user_metadata.name;
+                        } else if (user.email) {
+                            userName = user.email.split('@')[0];
+                        }
+
+                        const welcomeElement = document.getElementById('welcome-user-name');
+                        if (welcomeElement) {
+                            welcomeElement.textContent = userName;
+                        }
+                    } else {
+                        // 用户未登录，设置默认值
+                        const welcomeElement = document.getElementById('welcome-user-name');
+                        if (welcomeElement) {
+                            welcomeElement.textContent = '用户';
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('加载用户信息失败:', error);
+                const welcomeElement = document.getElementById('welcome-user-name');
+                if (welcomeElement) {
+                    welcomeElement.textContent = '用户';
+                }
+            }
         }
 
         // 加载仪表板数据
@@ -171,52 +255,112 @@
         // 初始化图表
         function initCharts() {
             // 销售趋势图
-            const salesCtx = document.getElementById('sales-chart').getContext('2d');
-            new Chart(salesCtx, {
-                type: 'line',
-                data: {
-                    labels: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
-                    datasets: [{
-                        label: '销售额',
-                        data: [12000, 15000, 13000, 18000, 16000, 22000, 25000],
-                        borderColor: 'rgb(239, 68, 68)',
-                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false
-                }
-            });
+            const salesCtx = document.getElementById('sales-chart');
+            if (salesCtx) {
+                new Chart(salesCtx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+                        datasets: [{
+                            label: '销售额',
+                            data: [12000, 15000, 13000, 18000, 16000, 22000, 25000],
+                            borderColor: 'rgb(239, 68, 68)',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return '¥' + value.toLocaleString();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
 
             // 门店业绩图
-            const storeCtx = document.getElementById('store-performance-chart').getContext('2d');
-            new Chart(storeCtx, {
-                type: 'bar',
-                data: {
-                    labels: ['总店', '分店A', '分店B', '分店C'],
-                    datasets: [{
-                        label: '月销售额',
-                        data: [85000, 65000, 72000, 58000],
-                        backgroundColor: [
-                            'rgba(239, 68, 68, 0.8)',
-                            'rgba(34, 197, 94, 0.8)',
-                            'rgba(59, 130, 246, 0.8)',
-                            'rgba(168, 85, 247, 0.8)'
-                        ]
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false
-                }
-            });
+            const storeCtx = document.getElementById('store-performance-chart');
+            if (storeCtx) {
+                new Chart(storeCtx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['总店', '分店A', '分店B', '分店C'],
+                        datasets: [{
+                            label: '月销售额',
+                            data: [85000, 65000, 72000, 58000],
+                            backgroundColor: [
+                                'rgba(239, 68, 68, 0.8)',
+                                'rgba(34, 197, 94, 0.8)',
+                                'rgba(59, 130, 246, 0.8)',
+                                'rgba(168, 85, 247, 0.8)'
+                            ],
+                            borderColor: [
+                                'rgb(239, 68, 68)',
+                                'rgb(34, 197, 94)',
+                                'rgb(59, 130, 246)',
+                                'rgb(168, 85, 247)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return '¥' + value.toLocaleString();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
         }
 
         // 页面导航
         function navigateTo(page) {
-            window.location.href = `pages/${page}.html`;
+            const routes = {
+                'dashboard': 'dashboard.html',
+                'stores': 'pages/stores.html',
+                'staff': 'pages/staff.html',
+                'formulas': 'pages/formulas.html',
+                'documents': 'pages/documents.html',
+                'operations': 'pages/operations.html',
+                'reports': 'pages/reports.html',
+                'admin': 'pages/admin.html'
+            };
+
+            const url = routes[page];
+            if (url) {
+                window.location.href = url;
+            } else {
+                console.error('未知的页面:', page);
+            }
         }
     </script>
 </body>
