@@ -3,28 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>首页 - 今岭火锅店OA系统</title>
-    <link rel="stylesheet" href="home.css">
-    <link rel="icon" href="assets/favicon.ico" type="image/x-icon">
+    <title>火锅店OA系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 </head>
-<body>
-    <div class="container">
-        <header>
-            <h1>欢迎来到今岭火锅店OA系统</h1>
-            <nav>
-                <ul>
-                    <li><a href="pages/dashboard/index.html">工作台</a></li>
-                    <li><a href="pages/apply/index.html">提交申请</a></li>
-                    <li><a href="pages/approvals/index.html">审批列表</a></li>
-                    <li><a href="#" id="logoutButton">退出登录</a></li>
-                </ul>
-            </nav>
-        </header>
-        <main>
-            <p>请选择一个操作开始。</p>
-            <p id="userInfo"></p> <!-- 用于显示用户信息 -->
-        </main>
+<body class="bg-gray-50">
+    <div id="app" class="min-h-screen">
+        <!-- 加载中状态 -->
+        <div id="loading" class="fixed inset-0 bg-white flex items-center justify-center z-50">
+            <div class="text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
+                <p class="mt-4 text-gray-600">正在加载...</p>
+            </div>
+        </div>
+
+        <!-- 登录页面 -->
+        <div id="auth-page" class="hidden min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+            <div class="max-w-md w-full space-y-8">
+                <div>
+                    <div class="mx-auto h-16 w-16 bg-red-600 rounded-full flex items-center justify-center">
+                        <span class="text-white text-2xl font-bold">火</span>
+                    </div>
+                    <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                        火锅店OA系统
+                    </h2>
+                    <p class="mt-2 text-center text-sm text-gray-600">
+                        请登录您的账户
+                    </p>
+                </div>
+                <form id="auth-form" class="mt-8 space-y-6">
+                    <div class="rounded-md shadow-sm -space-y-px">
+                        <div>
+                            <input id="email" name="email" type="email" required 
+                                   class="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-red-500 focus:border-red-500 focus:z-10 sm:text-sm" 
+                                   placeholder="邮箱地址">
+                        </div>
+                        <div>
+                            <input id="password" name="password" type="password" required 
+                                   class="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-red-500 focus:border-red-500 focus:z-10 sm:text-sm" 
+                                   placeholder="密码">
+                        </div>
+                    </div>
+
+                    <div>
+                        <button type="submit" 
+                                class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                            登录
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 主应用界面 -->
+        <div id="main-app" class="hidden">
+            <!-- 这里将加载dashboard.html的内容 -->
+        </div>
     </div>
-    <script type="module" src="home.js"></script>
+
+    <!-- 提示框 -->
+    <div id="toast" class="hidden fixed top-4 right-4 px-4 py-3 rounded z-50">
+        <span id="toast-message"></span>
+    </div>
+
+    <script src="config/supabase.js"></script>
+    <script src="assets/js/supabase-client.js"></script>
+    <script src="assets/js/auth.js"></script>
+    <script src="assets/js/utils.js"></script>
+    <script src="assets/js/app.js"></script>
 </body>
-</html> 
+</html>

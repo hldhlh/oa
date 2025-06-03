@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>仪表板 - 火锅店OA系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="flex h-screen">
+        <!-- 侧边栏 -->
+        <div id="sidebar-container"></div>
+
+        <!-- 主内容区 -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- 头部 -->
+            <div id="header-container"></div>
+
+            <!-- 主内容 -->
+            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
+                <!-- 欢迎信息 -->
+                <div class="mb-6">
+                    <h1 class="text-2xl font-bold text-gray-900">欢迎回来！</h1>
+                    <p class="text-gray-600">今天是 <span id="current-date"></span></p>
+                </div>
+
+                <!-- 统计卡片 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-blue-100">
+                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-600">门店总数</p>
+                                <p class="text-2xl font-bold text-gray-900" id="store-count">-</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-green-100">
+                                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-600">员工总数</p>
+                                <p class="text-2xl font-bold text-gray-900" id="staff-count">-</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-yellow-100">
+                                <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-600">配方总数</p>
+                                <p class="text-2xl font-bold text-gray-900" id="formula-count">-</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-red-100">
+                                <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-600">今日营业额</p>
+                                <p class="text-2xl font-bold text-gray-900" id="daily-revenue">-</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 图表区域 -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">销售趋势</h3>
+                        <canvas id="sales-chart" width="400" height="200"></canvas>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">门店业绩排行</h3>
+                        <canvas id="store-performance-chart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+
+                <!-- 快速操作 -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">快速操作</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <button onclick="navigateTo('formulas')" class="p-4 text-center border border-gray-200 rounded-lg hover:bg-gray-50">
+                            <div class="w-8 h-8 mx-auto mb-2 text-red-600">🍲</div>
+                            <span class="text-sm text-gray-700">配方管理</span>
+                        </button>
+                        <button onclick="navigateTo('documents')" class="p-4 text-center border border-gray-200 rounded-lg hover:bg-gray-50">
+                            <div class="w-8 h-8 mx-auto mb-2 text-blue-600">📄</div>
+                            <span class="text-sm text-gray-700">文档中心</span>
+                        </button>
+                        <button onclick="navigateTo('staff')" class="p-4 text-center border border-gray-200 rounded-lg hover:bg-gray-50">
+                            <div class="w-8 h-8 mx-auto mb-2 text-green-600">👥</div>
+                            <span class="text-sm text-gray-700">员工管理</span>
+                        </button>
+                        <button onclick="navigateTo('reports')" class="p-4 text-center border border-gray-200 rounded-lg hover:bg-gray-50">
+                            <div class="w-8 h-8 mx-auto mb-2 text-purple-600">📊</div>
+                            <span class="text-sm text-gray-700">报表分析</span>
+                        </button>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="config/supabase.js"></script>
+    <script src="assets/js/supabase-client.js"></script>
+    <script src="assets/js/database.js"></script>
+    <script src="assets/js/utils.js"></script>
+    <script>
+        // 初始化仪表板
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadComponents();
+            await loadDashboardData();
+            initCharts();
+            updateDateTime();
+        });
+
+        // 加载组件
+        async function loadComponents() {
+            await loadComponent('sidebar-container', 'components/sidebar.html');
+            await loadComponent('header-container', 'components/header.html');
+        }
+
+        // 加载仪表板数据
+        async function loadDashboardData() {
+            try {
+                const stats = await getDashboardStats();
+                document.getElementById('store-count').textContent = stats.stores || 0;
+                document.getElementById('staff-count').textContent = stats.staff || 0;
+                document.getElementById('formula-count').textContent = stats.formulas || 0;
+                document.getElementById('daily-revenue').textContent = `¥${stats.revenue || 0}`;
+            } catch (error) {
+                console.error('加载仪表板数据失败:', error);
+            }
+        }
+
+        // 更新日期时间
+        function updateDateTime() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('zh-CN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                weekday: 'long'
+            });
+            document.getElementById('current-date').textContent = dateStr;
+        }
+
+        // 初始化图表
+        function initCharts() {
+            // 销售趋势图
+            const salesCtx = document.getElementById('sales-chart').getContext('2d');
+            new Chart(salesCtx, {
+                type: 'line',
+                data: {
+                    labels: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+                    datasets: [{
+                        label: '销售额',
+                        data: [12000, 15000, 13000, 18000, 16000, 22000, 25000],
+                        borderColor: 'rgb(239, 68, 68)',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+
+            // 门店业绩图
+            const storeCtx = document.getElementById('store-performance-chart').getContext('2d');
+            new Chart(storeCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['总店', '分店A', '分店B', '分店C'],
+                    datasets: [{
+                        label: '月销售额',
+                        data: [85000, 65000, 72000, 58000],
+                        backgroundColor: [
+                            'rgba(239, 68, 68, 0.8)',
+                            'rgba(34, 197, 94, 0.8)',
+                            'rgba(59, 130, 246, 0.8)',
+                            'rgba(168, 85, 247, 0.8)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        // 页面导航
+        function navigateTo(page) {
+            window.location.href = `pages/${page}.html`;
+        }
+    </script>
+</body>
+</html>
