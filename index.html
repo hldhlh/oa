@@ -18,7 +18,7 @@
             </div>
         </div>
 
-        <!-- 登录页面 -->
+        <!-- 登录/注册页面 -->
         <div id="auth-page" class="hidden min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
             <div class="max-w-md w-full space-y-8">
                 <div>
@@ -28,28 +28,121 @@
                     <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
                         火锅店OA系统
                     </h2>
-                    <p class="mt-2 text-center text-sm text-gray-600">
+                    <p id="auth-subtitle" class="mt-2 text-center text-sm text-gray-600">
                         请登录您的账户
                     </p>
                 </div>
-                <form id="auth-form" class="mt-8 space-y-6">
+
+                <!-- 登录/注册切换标签 -->
+                <div class="flex rounded-lg bg-gray-100 p-1">
+                    <button id="login-tab" class="flex-1 py-2 px-4 text-sm font-medium rounded-md text-red-600 bg-white shadow-sm transition-all duration-200">
+                        登录
+                    </button>
+                    <button id="register-tab" class="flex-1 py-2 px-4 text-sm font-medium rounded-md text-gray-500 hover:text-gray-700 transition-all duration-200">
+                        注册
+                    </button>
+                </div>
+
+                <!-- 登录表单 -->
+                <form id="login-form" class="mt-8 space-y-6">
                     <div class="rounded-md shadow-sm -space-y-px">
                         <div>
-                            <input id="email" name="email" type="email" required 
-                                   class="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-red-500 focus:border-red-500 focus:z-10 sm:text-sm" 
+                            <input id="login-email" name="email" type="email" required
+                                   class="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-red-500 focus:border-red-500 focus:z-10 sm:text-sm"
                                    placeholder="邮箱地址">
                         </div>
                         <div>
-                            <input id="password" name="password" type="password" required 
-                                   class="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-red-500 focus:border-red-500 focus:z-10 sm:text-sm" 
+                            <input id="login-password" name="password" type="password" required
+                                   class="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-red-500 focus:border-red-500 focus:z-10 sm:text-sm"
                                    placeholder="密码">
                         </div>
                     </div>
 
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <input id="remember-me" name="remember-me" type="checkbox"
+                                   class="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded">
+                            <label for="remember-me" class="ml-2 block text-sm text-gray-900">
+                                记住我
+                            </label>
+                        </div>
+                        <div class="text-sm">
+                            <a href="#" class="font-medium text-red-600 hover:text-red-500">
+                                忘记密码？
+                            </a>
+                        </div>
+                    </div>
+
                     <div>
-                        <button type="submit" 
+                        <button type="submit"
                                 class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                            <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                                <svg class="h-5 w-5 text-red-500 group-hover:text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+                                </svg>
+                            </span>
                             登录
+                        </button>
+                    </div>
+                </form>
+
+                <!-- 注册表单 -->
+                <form id="register-form" class="hidden mt-8 space-y-6 transition-opacity duration-300">
+                    <div class="rounded-md shadow-sm -space-y-px">
+                        <div>
+                            <input id="register-name" name="name" type="text" required
+                                   class="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-red-500 focus:border-red-500 focus:z-10 sm:text-sm"
+                                   placeholder="姓名">
+                        </div>
+                        <div>
+                            <input id="register-email" name="email" type="email" required
+                                   class="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-red-500 focus:border-red-500 focus:z-10 sm:text-sm"
+                                   placeholder="邮箱地址">
+                        </div>
+                        <div>
+                            <input id="register-phone" name="phone" type="tel"
+                                   class="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-red-500 focus:border-red-500 focus:z-10 sm:text-sm"
+                                   placeholder="手机号码（可选）">
+                        </div>
+                        <div>
+                            <input id="register-password" name="password" type="password" required
+                                   class="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-red-500 focus:border-red-500 focus:z-10 sm:text-sm"
+                                   placeholder="密码（至少8位）" minlength="8">
+                        </div>
+                        <div>
+                            <input id="register-confirm-password" name="confirm-password" type="password" required
+                                   class="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-red-500 focus:border-red-500 focus:z-10 sm:text-sm"
+                                   placeholder="确认密码">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">职位角色</label>
+                        <select id="register-role" name="role" required
+                                class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm">
+                            <option value="">请选择职位</option>
+                            <option value="staff">普通员工</option>
+                            <option value="manager">门店经理</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center">
+                        <input id="agree-terms" name="agree-terms" type="checkbox" required
+                               class="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded">
+                        <label for="agree-terms" class="ml-2 block text-sm text-gray-900">
+                            我同意 <a href="#" class="text-red-600 hover:text-red-500">服务条款</a> 和 <a href="#" class="text-red-600 hover:text-red-500">隐私政策</a>
+                        </label>
+                    </div>
+
+                    <div>
+                        <button type="submit"
+                                class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                            <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                                <svg class="h-5 w-5 text-red-500 group-hover:text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z" />
+                                </svg>
+                            </span>
+                            注册账户
                         </button>
                     </div>
                 </form>
@@ -72,5 +165,162 @@
     <script src="assets/js/auth.js"></script>
     <script src="assets/js/utils.js"></script>
     <script src="assets/js/app.js"></script>
+
+    <script>
+        // 登录/注册页面逻辑
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginTab = document.getElementById('login-tab');
+            const registerTab = document.getElementById('register-tab');
+            const loginForm = document.getElementById('login-form');
+            const registerForm = document.getElementById('register-form');
+            const authSubtitle = document.getElementById('auth-subtitle');
+
+            // 切换到登录页面
+            function showLogin() {
+                loginTab.classList.add('text-red-600', 'bg-white', 'shadow-sm');
+                loginTab.classList.remove('text-gray-500');
+                registerTab.classList.add('text-gray-500');
+                registerTab.classList.remove('text-red-600', 'bg-white', 'shadow-sm');
+
+                // 添加淡入淡出效果
+                registerForm.classList.add('hidden');
+                setTimeout(() => {
+                    loginForm.classList.remove('hidden');
+                    loginForm.style.opacity = '0';
+                    setTimeout(() => {
+                        loginForm.style.opacity = '1';
+                    }, 10);
+                }, 50);
+
+                authSubtitle.textContent = '请登录您的账户';
+            }
+
+            // 切换到注册页面
+            function showRegister() {
+                registerTab.classList.add('text-red-600', 'bg-white', 'shadow-sm');
+                registerTab.classList.remove('text-gray-500');
+                loginTab.classList.add('text-gray-500');
+                loginTab.classList.remove('text-red-600', 'bg-white', 'shadow-sm');
+
+                // 添加淡入淡出效果
+                loginForm.classList.add('hidden');
+                setTimeout(() => {
+                    registerForm.classList.remove('hidden');
+                    registerForm.style.opacity = '0';
+                    setTimeout(() => {
+                        registerForm.style.opacity = '1';
+                    }, 10);
+                }, 50);
+
+                authSubtitle.textContent = '创建新账户';
+            }
+
+            // 标签点击事件
+            loginTab.addEventListener('click', showLogin);
+            registerTab.addEventListener('click', showRegister);
+
+            // 登录表单提交
+            loginForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const email = document.getElementById('login-email').value;
+                const password = document.getElementById('login-password').value;
+
+                if (!authManager) {
+                    authManager = initAuth();
+                }
+
+                try {
+                    await authManager.login(email, password);
+                } catch (error) {
+                    console.error('登录失败:', error);
+                }
+            });
+
+            // 注册表单提交
+            registerForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const name = document.getElementById('register-name').value;
+                const email = document.getElementById('register-email').value;
+                const phone = document.getElementById('register-phone').value;
+                const password = document.getElementById('register-password').value;
+                const confirmPassword = document.getElementById('register-confirm-password').value;
+                const role = document.getElementById('register-role').value;
+                const agreeTerms = document.getElementById('agree-terms').checked;
+
+                // 表单验证
+                if (password !== confirmPassword) {
+                    showToast('两次输入的密码不一致', 'error');
+                    return;
+                }
+
+                if (password.length < 8) {
+                    showToast('密码长度至少8位', 'error');
+                    return;
+                }
+
+                if (!agreeTerms) {
+                    showToast('请同意服务条款和隐私政策', 'error');
+                    return;
+                }
+
+                if (!authManager) {
+                    authManager = initAuth();
+                }
+
+                try {
+                    const userData = {
+                        name: name,
+                        phone: phone,
+                        role: role
+                    };
+
+                    await authManager.register(email, password, userData);
+
+                    // 注册成功后切换到登录页面
+                    showLogin();
+
+                    // 清空注册表单
+                    registerForm.reset();
+
+                } catch (error) {
+                    console.error('注册失败:', error);
+                }
+            });
+
+            // 密码确认验证
+            const registerPassword = document.getElementById('register-password');
+            const confirmPassword = document.getElementById('register-confirm-password');
+
+            function validatePasswordMatch() {
+                if (confirmPassword.value && registerPassword.value !== confirmPassword.value) {
+                    confirmPassword.setCustomValidity('密码不匹配');
+                } else {
+                    confirmPassword.setCustomValidity('');
+                }
+            }
+
+            registerPassword.addEventListener('input', validatePasswordMatch);
+            confirmPassword.addEventListener('input', validatePasswordMatch);
+
+            // 邮箱格式验证
+            function validateEmail(email) {
+                const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return re.test(email);
+            }
+
+            // 手机号格式验证（可选）
+            const phoneInput = document.getElementById('register-phone');
+            phoneInput.addEventListener('input', function() {
+                const phone = this.value;
+                if (phone && !/^1[3-9]\d{9}$/.test(phone)) {
+                    this.setCustomValidity('请输入正确的手机号码');
+                } else {
+                    this.setCustomValidity('');
+                }
+            });
+        });
+    </script>
 </body>
 </html>

@@ -118,8 +118,22 @@ class AuthManager {
     async register(email, password, userData = {}) {
         try {
             showLoading(true);
-            const result = await SupabaseAuth.signUp(email, password, userData);
-            showToast('注册成功！请检查邮箱验证链接。', 'success');
+
+            // 构建用户元数据
+            const userMetadata = {
+                name: userData.name || '新用户',
+                phone: userData.phone || '',
+                role: userData.role || 'staff'
+            };
+
+            const result = await SupabaseAuth.signUp(email, password, userMetadata);
+
+            if (result.user && !result.user.email_confirmed_at) {
+                showToast('注册成功！请检查邮箱验证链接。', 'success');
+            } else if (result.user) {
+                showToast('注册成功！', 'success');
+            }
+
             return result;
         } catch (error) {
             showToast(error.message, 'error');
@@ -251,30 +265,8 @@ function initAuth() {
     return authManager;
 }
 
-// 认证表单处理
+// 初始化认证管理器
 document.addEventListener('DOMContentLoaded', function() {
-    const authForm = document.getElementById('auth-form');
-    
-    if (authForm) {
-        authForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            
-            if (!authManager) {
-                authManager = initAuth();
-            }
-            
-            try {
-                await authManager.login(email, password);
-            } catch (error) {
-                console.error('登录失败:', error);
-            }
-        });
-    }
-    
-    // 初始化认证管理器
     if (!authManager) {
         authManager = initAuth();
     }
