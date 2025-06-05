@@ -3,365 +3,284 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>仪表板 - 火锅店OA系统</title>
+    <title>今岭火锅店OA系统 - 仪表板</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body class="bg-gray-50">
-    <div class="flex flex-col h-screen">
-        <!-- 头部组件 - 填充整个宽度 -->
-        <div id="header-container" class="w-full"></div>
-
-        <!-- 主体区域 - 侧边栏和内容区域 -->
-        <div class="flex flex-1 overflow-hidden">
-            <!-- 侧边栏 -->
-            <div id="sidebar-container"></div>
-
-            <!-- 主内容区 -->
-            <div class="flex-1 flex flex-col overflow-hidden">
-
-            <!-- 主内容 -->
-            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
-                <!-- 欢迎信息 -->
-                <div class="mb-6">
-                    <h1 class="text-2xl font-bold text-gray-900">欢迎<span id="welcome-user-name">XXX</span>回来！</h1>
-                    <p class="text-gray-600">今天是 <span id="current-date"></span></p>
-                </div>
-
-                <!-- 统计卡片 -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <div class="flex items-center">
-                            <div class="p-3 rounded-full bg-blue-100">
-                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                                </svg>
-                            </div>
-                            <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-600">门店总数</p>
-                                <p class="text-2xl font-bold text-gray-900" id="store-count">-</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <div class="flex items-center">
-                            <div class="p-3 rounded-full bg-green-100">
-                                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                                </svg>
-                            </div>
-                            <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-600">员工总数</p>
-                                <p class="text-2xl font-bold text-gray-900" id="staff-count">-</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <div class="flex items-center">
-                            <div class="p-3 rounded-full bg-yellow-100">
-                                <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                </svg>
-                            </div>
-                            <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-600">配方总数</p>
-                                <p class="text-2xl font-bold text-gray-900" id="formula-count">-</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <div class="flex items-center">
-                            <div class="p-3 rounded-full bg-red-100">
-                                <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                            </div>
-                            <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-600">今日营业额</p>
-                                <p class="text-2xl font-bold text-gray-900" id="daily-revenue">-</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 图表区域 -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <h3 class="text-lg font-medium text-gray-900 mb-4">销售趋势</h3>
-                        <div class="h-64 relative">
-                            <canvas id="sales-chart" class="absolute inset-0 w-full h-full"></canvas>
-                        </div>
-                    </div>
-
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <h3 class="text-lg font-medium text-gray-900 mb-4">门店业绩排行</h3>
-                        <div class="h-64 relative">
-                            <canvas id="store-performance-chart" class="absolute inset-0 w-full h-full"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 快速操作 -->
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">快速操作</h3>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <button onclick="navigateTo('formulas')" class="p-4 text-center border border-gray-200 rounded-lg hover:bg-gray-50">
-                            <div class="w-8 h-8 mx-auto mb-2 text-red-600">🍲</div>
-                            <span class="text-sm text-gray-700">配方管理</span>
-                        </button>
-                        <button onclick="navigateTo('documents')" class="p-4 text-center border border-gray-200 rounded-lg hover:bg-gray-50">
-                            <div class="w-8 h-8 mx-auto mb-2 text-blue-600">📄</div>
-                            <span class="text-sm text-gray-700">文档中心</span>
-                        </button>
-                        <button onclick="navigateTo('staff')" class="p-4 text-center border border-gray-200 rounded-lg hover:bg-gray-50">
-                            <div class="w-8 h-8 mx-auto mb-2 text-green-600">👥</div>
-                            <span class="text-sm text-gray-700">员工管理</span>
-                        </button>
-                        <button onclick="navigateTo('reports')" class="p-4 text-center border border-gray-200 rounded-lg hover:bg-gray-50">
-                            <div class="w-8 h-8 mx-auto mb-2 text-purple-600">📊</div>
-                            <span class="text-sm text-gray-700">报表分析</span>
-                        </button>
-                    </div>
-                </div>
-            </main>
-        </div>
-    </div>
-
-    <script src="config/supabase.js"></script>
-    <script src="config/constants.js"></script>
-    <script src="assets/js/utils.js"></script>
-    <script src="assets/js/supabase-client.js"></script>
-    <script src="assets/js/database.js"></script>
-    <script src="assets/js/auth.js"></script>
-    <script src="assets/js/app.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script>
-        // 初始化仪表板
-        document.addEventListener('DOMContentLoaded', async function() {
-            try {
-                // 检查用户认证状态
-                await checkAuthStatus();
-
-                // 加载页面组件和数据
-                await loadComponents();
-                await loadUserInfo();
-                await loadDashboardData();
-                initCharts();
-                updateDateTime();
-            } catch (error) {
-                console.error('仪表板初始化失败:', error);
-                // 如果初始化失败，重定向到登录页面
-                window.location.href = 'index.html';
-            }
-        });
-
-        // 检查认证状态
-        async function checkAuthStatus() {
-            try {
-                if (typeof SupabaseAuth !== 'undefined') {
-                    const user = await SupabaseAuth.getCurrentUser();
-                    if (!user) {
-                        // 用户未登录，重定向到登录页面
-                        window.location.href = 'index.html';
-                        return;
-                    }
-                } else {
-                    // 认证模块未加载，重定向到登录页面
-                    window.location.href = 'index.html';
-                    return;
-                }
-            } catch (error) {
-                console.error('认证检查失败:', error);
-                window.location.href = 'index.html';
-                return;
-            }
-        }
-
-        // 加载组件
-        async function loadComponents() {
-            await loadComponent('sidebar-container', 'components/sidebar.html');
-            await loadComponent('header-container', 'components/header.html');
-        }
-
-        // 加载用户信息
-        async function loadUserInfo() {
-            try {
-                // 直接从Supabase获取当前用户
-                if (typeof SupabaseAuth !== 'undefined') {
-                    const user = await SupabaseAuth.getCurrentUser();
-                    if (user) {
-                        // 尝试从数据库获取用户资料
-                        const db = getDatabase();
-                        const profile = await db.getUserProfile(user.id);
-
-                        let userName = '用户';
-                        if (profile && profile.name) {
-                            userName = profile.name;
-                        } else if (user.user_metadata && user.user_metadata.name) {
-                            userName = user.user_metadata.name;
-                        } else if (user.email) {
-                            userName = user.email.split('@')[0];
-                        }
-
-                        const welcomeElement = document.getElementById('welcome-user-name');
-                        if (welcomeElement) {
-                            welcomeElement.textContent = userName;
-                        }
-                    } else {
-                        // 用户未登录，设置默认值
-                        const welcomeElement = document.getElementById('welcome-user-name');
-                        if (welcomeElement) {
-                            welcomeElement.textContent = '用户';
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#fef2f2',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c'
                         }
                     }
                 }
-            } catch (error) {
-                console.error('加载用户信息失败:', error);
-                const welcomeElement = document.getElementById('welcome-user-name');
-                if (welcomeElement) {
-                    welcomeElement.textContent = '用户';
-                }
-            }
-        }
-
-        // 加载仪表板数据
-        async function loadDashboardData() {
-            try {
-                const stats = await getDashboardStats();
-                document.getElementById('store-count').textContent = stats.stores || 0;
-                document.getElementById('staff-count').textContent = stats.staff || 0;
-                document.getElementById('formula-count').textContent = stats.formulas || 0;
-                document.getElementById('daily-revenue').textContent = `¥${stats.revenue || 0}`;
-            } catch (error) {
-                console.error('加载仪表板数据失败:', error);
-            }
-        }
-
-        // 更新日期时间
-        function updateDateTime() {
-            const now = new Date();
-            const dateStr = now.toLocaleDateString('zh-CN', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                weekday: 'long'
-            });
-            document.getElementById('current-date').textContent = dateStr;
-        }
-
-        // 初始化图表
-        function initCharts() {
-            // 销售趋势图
-            const salesCtx = document.getElementById('sales-chart');
-            if (salesCtx) {
-                new Chart(salesCtx.getContext('2d'), {
-                    type: 'line',
-                    data: {
-                        labels: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
-                        datasets: [{
-                            label: '销售额',
-                            data: [12000, 15000, 13000, 18000, 16000, 22000, 25000],
-                            borderColor: 'rgb(239, 68, 68)',
-                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                            tension: 0.4,
-                            fill: true
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'top'
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                ticks: {
-                                    callback: function(value) {
-                                        return '¥' + value.toLocaleString();
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-
-            // 门店业绩图
-            const storeCtx = document.getElementById('store-performance-chart');
-            if (storeCtx) {
-                new Chart(storeCtx.getContext('2d'), {
-                    type: 'bar',
-                    data: {
-                        labels: ['总店', '分店A', '分店B', '分店C'],
-                        datasets: [{
-                            label: '月销售额',
-                            data: [85000, 65000, 72000, 58000],
-                            backgroundColor: [
-                                'rgba(239, 68, 68, 0.8)',
-                                'rgba(34, 197, 94, 0.8)',
-                                'rgba(59, 130, 246, 0.8)',
-                                'rgba(168, 85, 247, 0.8)'
-                            ],
-                            borderColor: [
-                                'rgb(239, 68, 68)',
-                                'rgb(34, 197, 94)',
-                                'rgb(59, 130, 246)',
-                                'rgb(168, 85, 247)'
-                            ],
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'top'
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                ticks: {
-                                    callback: function(value) {
-                                        return '¥' + value.toLocaleString();
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-        }
-
-        // 页面导航
-        function navigateTo(page) {
-            const routes = {
-                'dashboard': 'dashboard.html',
-                'stores': 'pages/stores.html',
-                'staff': 'pages/staff.html',
-                'formulas': 'pages/formulas.html',
-                'documents': 'pages/documents.html',
-                'operations': 'pages/operations.html',
-                'reports': 'pages/reports.html',
-                'admin': 'pages/admin.html'
-            };
-
-            const url = routes[page];
-            if (url) {
-                window.location.href = url;
-            } else {
-                console.error('未知的页面:', page);
             }
         }
     </script>
+</head>
+<body class="bg-gray-50">
+    <!-- 头部导航 -->
+    <header class="bg-white shadow-sm border-b border-gray-200">
+        <div class="flex items-center justify-between px-4 py-3">
+            <!-- Logo和标题 -->
+            <div class="flex items-center space-x-3">
+                <div class="h-8 w-8 bg-primary-500 rounded-lg flex items-center justify-center">
+                    <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                    </svg>
+                </div>
+                <h1 class="text-lg font-semibold text-gray-900">今岭火锅店OA系统</h1>
+            </div>
+
+            <!-- 用户菜单 -->
+            <div class="flex items-center space-x-4">
+                <!-- 通知 -->
+                <button class="p-2 text-gray-400 hover:text-gray-500 relative">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM10.5 3.75a6 6 0 0 1 6 6v2.25a2.25 2.25 0 0 0 2.25 2.25H21a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1 0-1.5h2.25A2.25 2.25 0 0 0 7.5 12V9.75a6 6 0 0 1 6-6Z"></path>
+                    </svg>
+                    <span class="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full"></span>
+                </button>
+
+                <!-- 用户头像和菜单 -->
+                <div class="relative" id="userMenu">
+                    <button class="flex items-center space-x-2 text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" id="userMenuButton">
+                        <div class="h-8 w-8 bg-primary-100 rounded-full flex items-center justify-center">
+                            <span class="text-primary-600 font-medium" id="userInitial">U</span>
+                        </div>
+                        <span class="hidden md:block text-gray-700" id="userName">用户</span>
+                        <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+
+                    <!-- 下拉菜单 -->
+                    <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 hidden" id="userDropdown">
+                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">个人资料</a>
+                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">设置</a>
+                        <div class="border-t border-gray-100"></div>
+                        <button onclick="authFunctions.signOut()" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">退出登录</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex h-screen pt-16">
+        <!-- 侧边栏 -->
+        <aside class="w-64 bg-white shadow-sm border-r border-gray-200 fixed h-full overflow-y-auto">
+            <nav class="mt-5 px-2">
+                <div class="space-y-1">
+                    <!-- 仪表板 -->
+                    <a href="dashboard.html" class="bg-primary-50 border-primary-500 text-primary-700 group flex items-center px-2 py-2 text-sm font-medium rounded-md border-l-4">
+                        <svg class="text-primary-500 mr-3 h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v6H8V5z"></path>
+                        </svg>
+                        仪表板
+                    </a>
+
+                    <!-- 文档管理 -->
+                    <a href="pages/documents/index.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+                        <svg class="text-gray-400 group-hover:text-gray-500 mr-3 h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        文档管理
+                    </a>
+
+                    <!-- 配方管理 -->
+                    <a href="pages/recipes/index.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+                        <svg class="text-gray-400 group-hover:text-gray-500 mr-3 h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                        </svg>
+                        配方管理
+                    </a>
+
+                    <!-- 员工管理 -->
+                    <a href="pages/employees/index.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+                        <svg class="text-gray-400 group-hover:text-gray-500 mr-3 h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                        </svg>
+                        员工管理
+                    </a>
+
+                    <!-- 系统设置 -->
+                    <a href="pages/settings/index.html" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+                        <svg class="text-gray-400 group-hover:text-gray-500 mr-3 h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        系统设置
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- 主内容区域 -->
+        <main class="flex-1 ml-64 p-6">
+            <!-- 欢迎信息 -->
+            <div class="mb-8">
+                <h2 class="text-2xl font-bold text-gray-900">欢迎回来，<span id="welcomeUserName">用户</span>！</h2>
+                <p class="mt-1 text-sm text-gray-600">今天是 <span id="currentDate"></span></p>
+            </div>
+
+            <!-- 统计卡片 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <!-- 文档总数 -->
+                <div class="bg-white overflow-hidden shadow rounded-lg">
+                    <div class="p-5">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">文档总数</dt>
+                                    <dd class="text-lg font-medium text-gray-900" id="totalDocuments">-</dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 配方总数 -->
+                <div class="bg-white overflow-hidden shadow rounded-lg">
+                    <div class="p-5">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">配方总数</dt>
+                                    <dd class="text-lg font-medium text-gray-900" id="totalRecipes">-</dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 员工总数 -->
+                <div class="bg-white overflow-hidden shadow rounded-lg">
+                    <div class="p-5">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">员工总数</dt>
+                                    <dd class="text-lg font-medium text-gray-900" id="totalEmployees">-</dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 今日登录 -->
+                <div class="bg-white overflow-hidden shadow rounded-lg">
+                    <div class="p-5">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">今日登录</dt>
+                                    <dd class="text-lg font-medium text-gray-900" id="todayLogins">-</dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 快速操作 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <!-- 快速操作卡片 -->
+                <div class="bg-white shadow rounded-lg">
+                    <div class="px-4 py-5 sm:p-6">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">快速操作</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <button class="flex flex-col items-center p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                <svg class="h-8 w-8 text-primary-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                                <span class="text-sm font-medium text-gray-900">新建文档</span>
+                            </button>
+                            <button class="flex flex-col items-center p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                <svg class="h-8 w-8 text-primary-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                                </svg>
+                                <span class="text-sm font-medium text-gray-900">添加配方</span>
+                            </button>
+                            <button class="flex flex-col items-center p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                <svg class="h-8 w-8 text-primary-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+                                </svg>
+                                <span class="text-sm font-medium text-gray-900">添加员工</span>
+                            </button>
+                            <button class="flex flex-col items-center p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                <svg class="h-8 w-8 text-primary-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                                <span class="text-sm font-medium text-gray-900">查看报表</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 最近活动 -->
+                <div class="bg-white shadow rounded-lg">
+                    <div class="px-4 py-5 sm:p-6">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">最近活动</h3>
+                        <div class="flow-root">
+                            <ul class="-mb-8" id="recentActivities">
+                                <li class="text-center py-8 text-gray-500">
+                                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <p class="mt-2 text-sm">暂无活动记录</p>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 消息提示 -->
+    <div id="message" class="fixed top-4 right-4 z-50 hidden">
+        <div class="bg-white border border-gray-200 rounded-lg shadow-lg p-4 max-w-sm">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <svg id="messageIcon" class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p id="messageText" class="text-sm font-medium text-gray-900"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/js/supabase.js"></script>
+    <script src="assets/js/auth.js"></script>
+    <script src="assets/js/dashboard.js"></script>
 </body>
 </html>

@@ -1,252 +1,263 @@
-# 火锅店OA系统
+# 今岭火锅店OA系统
 
-一个专为连锁火锅店设计的现代化办公自动化系统，基于HTML、Tailwind CSS和Supabase构建。
+一个现代化的办公自动化系统，专为今岭火锅店设计，提供文档管理、配方管理、员工管理等功能。
 
 ## 🚀 功能特性
 
 ### 核心功能
-- **文档管理**: 文档存储、搜索、实时查看和版本控制
-- **配方管理**: 火锅底料配方管理、原料配比和制作工艺
-- **安全权限**: 基于角色的访问控制和操作日志记录
-- **门店管理**: 多门店信息管理和业绩统计
-- **员工管理**: 员工档案、考勤和培训记录
-- **报表分析**: 销售数据分析和可视化图表
+- **用户认证系统** - 员工注册、登录、权限管理
+- **仪表板** - 数据概览、快速操作、最近活动
+- **文档管理** - 文件上传、分类、搜索、在线查看
+- **配方管理** - 食谱录入、分类管理、难度标记
+- **员工管理** - 员工信息、角色分配、状态管理
+- **系统设置** - 个人资料、安全设置、系统配置
 
 ### 技术特性
-- 🎨 **现代UI**: 基于Tailwind CSS的响应式设计
-- 🔐 **安全认证**: Supabase身份验证和行级安全策略
-- 📱 **移动适配**: 完全响应式，支持移动设备
-- ⚡ **高性能**: 优化的数据库查询和前端加载
-- 🔍 **全文搜索**: 支持中文的智能搜索功能
+- **响应式设计** - 完美支持桌面端和移动端
+- **现代化UI** - 使用Tailwind CSS构建的简洁界面
+- **实时数据** - 基于Supabase的实时数据同步
+- **安全认证** - 完整的用户认证和权限控制
+- **模块化架构** - 易于扩展和维护的代码结构
 
-## 📁 项目结构
+## 🛠️ 技术栈
+
+- **前端**: HTML5, JavaScript (ES6+), Tailwind CSS
+- **后端**: Supabase (PostgreSQL + Auth + Storage)
+- **部署**: 静态文件托管 (可部署到任何静态托管服务)
+
+## 📦 项目结构
 
 ```
-hotpot-oa/
-├── index.html                  # 主入口页面
-├── dashboard.html              # 仪表板
+oa/
+├── index.html                 # 登录页面
+├── dashboard.html            # 仪表板页面
 ├── assets/
-│   └── js/
-│       ├── app.js             # 主应用程序
-│       ├── supabase-client.js # Supabase客户端
-│       ├── auth.js            # 身份验证
-│       ├── database.js        # 数据库操作
-│       └── utils.js           # 工具函数
+│   ├── js/
+│   │   ├── supabase.js      # Supabase配置和工具函数
+│   │   ├── auth.js          # 认证相关功能
+│   │   └── dashboard.js     # 仪表板功能
 ├── pages/
-│   ├── formulas.html          # 配方管理
-│   ├── documents.html         # 文档管理
-│   ├── staff.html             # 员工管理
-│   ├── stores.html            # 门店管理
-│   ├── operations.html        # 运营管理
-│   ├── reports.html           # 报表分析
-│   └── admin.html             # 系统管理
-├── components/
-│   ├── sidebar.html           # 侧边栏组件
-│   ├── header.html            # 页面头部组件
-│   └── ...                    # 其他组件
-├── config/
-│   ├── supabase.js           # Supabase配置
-│   └── constants.js          # 常量定义
-└── sql/
-    ├── schema.sql            # 数据库表结构
-    ├── rls-policies.sql      # 行级安全策略
-    ├── functions.sql         # 数据库函数
-    └── seed-data.sql         # 初始数据
+│   ├── documents/           # 文档管理模块
+│   │   ├── index.html
+│   │   └── documents.js
+│   ├── recipes/             # 配方管理模块
+│   │   ├── index.html
+│   │   └── recipes.js
+│   ├── employees/           # 员工管理模块
+│   │   ├── index.html
+│   │   └── employees.js
+│   └── settings/            # 系统设置模块
+│       ├── index.html
+│       └── settings.js
+└── README.md
 ```
 
-## 🛠️ 安装部署
+## 🚀 快速开始
 
-### 前置要求
-- 现代浏览器（Chrome、Firefox、Safari、Edge）
-- Supabase账户
-- Web服务器（可选，用于生产环境）
+### 1. 环境准备
 
-### 快速开始
+确保您有以下环境：
+- 现代浏览器 (Chrome, Firefox, Safari, Edge)
+- 本地Web服务器 (可选，用于开发)
 
-1. **克隆项目**
-   ```bash
-   git clone <repository-url>
-   cd hotpot-oa
-   ```
+### 2. Supabase配置
 
-2. **配置Supabase**
-   - 在Supabase中创建新项目
-   - 执行`sql/schema.sql`创建数据库表
-   - 执行`sql/rls-policies.sql`设置安全策略
-   - 执行`sql/functions.sql`创建数据库函数
-   - 执行`sql/seed-data.sql`插入初始数据
+1. 在 [Supabase](https://supabase.com) 创建新项目
+2. 获取项目URL和API密钥
+3. 更新 `assets/js/supabase.js` 中的配置：
 
-3. **更新配置**
-   - 编辑`config/supabase.js`
-   - 更新Supabase URL和API密钥
+```javascript
+const SUPABASE_URL = 'your-project-url';
+const SUPABASE_ANON_KEY = 'your-anon-key';
+```
 
-4. **启动应用**
-   - 直接打开`index.html`（开发环境）
-   - 或部署到Web服务器（生产环境）
+### 3. 数据库设置
 
-### 数据库设置
-
-在Supabase SQL编辑器中依次执行以下文件：
+在Supabase SQL编辑器中执行以下SQL创建必要的表：
 
 ```sql
--- 1. 创建表结构
-\i sql/schema.sql
+-- 文档表
+CREATE TABLE documents (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name TEXT NOT NULL,
+    category TEXT NOT NULL,
+    description TEXT,
+    file_name TEXT NOT NULL,
+    file_url TEXT NOT NULL,
+    file_size BIGINT NOT NULL,
+    file_type TEXT NOT NULL,
+    uploaded_by UUID REFERENCES auth.users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
--- 2. 设置安全策略
-\i sql/rls-policies.sql
+-- 配方表
+CREATE TABLE recipes (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name TEXT NOT NULL,
+    category TEXT NOT NULL,
+    difficulty TEXT NOT NULL,
+    ingredients TEXT[] NOT NULL,
+    steps TEXT[] NOT NULL,
+    notes TEXT,
+    created_by UUID REFERENCES auth.users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
--- 3. 创建函数
-\i sql/functions.sql
+-- 员工表
+CREATE TABLE employees (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    phone TEXT,
+    role TEXT NOT NULL,
+    department TEXT NOT NULL,
+    hire_date DATE NOT NULL,
+    status TEXT DEFAULT 'active',
+    created_by UUID REFERENCES auth.users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
--- 4. 插入初始数据
-\i sql/seed-data.sql
+-- 启用行级安全
+ALTER TABLE documents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE recipes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE employees ENABLE ROW LEVEL SECURITY;
+
+-- 创建存储桶
+INSERT INTO storage.buckets (id, name, public) VALUES ('documents', 'documents', true);
 ```
 
-## 👥 用户角色
+### 4. 运行项目
 
-系统支持四种用户角色：
+#### 方法1: 直接打开文件
+直接在浏览器中打开 `index.html` 文件
 
-- **管理员 (admin)**: 完全访问权限，系统管理
-- **经理 (manager)**: 门店管理、员工管理、报表查看
-- **员工 (staff)**: 基本功能使用、文档查看
-- **访客 (viewer)**: 只读权限
+#### 方法2: 使用本地服务器
+```bash
+# 使用Python
+python -m http.server 8000
 
-## 🔐 安全特性
+# 使用Node.js
+npx serve .
 
-### 身份验证
-- 基于Supabase Auth的安全认证
-- 支持邮箱密码登录
-- 会话管理和自动过期
+# 使用PHP
+php -S localhost:8000
+```
 
-### 权限控制
-- 行级安全策略(RLS)确保数据隔离
-- 基于角色的功能访问控制
-- 操作日志记录和审计
+然后访问 `http://localhost:8000`
 
-### 数据安全
-- 所有敏感操作记录审计日志
-- 文档访问日志追踪
-- 数据库级别的安全约束
+## 👥 使用说明
 
-## 📊 主要功能模块
+### 首次使用
 
-### 1. 文档管理
-- **文档上传**: 支持多种文件格式
-- **分类管理**: 灵活的文档分类体系
-- **搜索功能**: 全文搜索和标签搜索
-- **版本控制**: 文档版本历史管理
-- **权限控制**: 基于角色的访问控制
+1. **注册账号**: 在登录页面点击"立即注册"创建账号
+2. **邮箱验证**: 检查邮箱并点击验证链接
+3. **登录系统**: 使用注册的邮箱和密码登录
 
-### 2. 配方管理
-- **配方创建**: 详细的配方信息录入
-- **原料管理**: 原料库存和成本管理
-- **制作工艺**: 标准化制作流程
-- **版本管理**: 配方版本迭代
-- **成本计算**: 自动计算配方成本
+### 主要功能
 
-### 3. 门店管理
-- **门店信息**: 基本信息和营业时间
-- **业绩统计**: 销售数据和趋势分析
-- **员工分配**: 门店员工管理
-- **库存管理**: 门店库存监控
+#### 文档管理
+- 上传各类文档文件 (PDF, DOC, DOCX, TXT, 图片)
+- 按分类组织文档 (政策文件、操作流程、培训资料等)
+- 搜索和筛选文档
+- 在线查看和下载文档
 
-### 4. 员工管理
-- **员工档案**: 完整的员工信息
-- **考勤管理**: 出勤记录和统计
-- **培训记录**: 培训计划和进度
-- **绩效评估**: 员工绩效管理
+#### 配方管理
+- 添加火锅配方 (汤底、蘸料、小菜、饮品)
+- 设置难度等级和详细步骤
+- 按分类浏览配方
+- 搜索特定配方
 
-## 🎨 界面设计
+#### 员工管理
+- 添加员工信息
+- 分配角色和部门
+- 管理员工状态
+- 查看员工列表
 
-### 设计原则
-- **简洁明了**: 清晰的信息层次和导航
-- **响应式**: 适配各种屏幕尺寸
-- **一致性**: 统一的设计语言和交互模式
-- **可访问性**: 符合Web可访问性标准
+#### 系统设置
+- 更新个人资料
+- 修改登录密码
+- 查看系统信息
+- 数据管理功能
 
-### 主要组件
-- **侧边栏导航**: 主要功能模块导航
-- **顶部搜索**: 全局搜索功能
-- **数据表格**: 可排序、筛选的数据展示
-- **模态框**: 表单输入和详情查看
-- **图表组件**: 数据可视化展示
+## 🔧 自定义配置
 
-## 🔧 开发指南
+### 修改主题颜色
 
-### 代码结构
-- **模块化**: 功能模块独立，便于维护
-- **组件化**: 可复用的UI组件
-- **配置化**: 集中的配置管理
+在每个HTML文件的 `<script>` 标签中修改Tailwind配置：
 
-### 扩展开发
-1. **添加新页面**: 在`pages/`目录创建HTML文件
-2. **添加新组件**: 在`components/`目录创建组件
-3. **扩展数据库**: 修改`sql/schema.sql`添加新表
-4. **添加新功能**: 在相应的JS文件中添加功能
+```javascript
+tailwind.config = {
+    theme: {
+        extend: {
+            colors: {
+                primary: {
+                    50: '#fef2f2',   // 浅色背景
+                    500: '#ef4444',  // 主色调
+                    600: '#dc2626',  // 悬停色
+                    700: '#b91c1c'   // 激活色
+                }
+            }
+        }
+    }
+}
+```
 
-### 最佳实践
-- 使用Tailwind CSS类名进行样式设计
-- 遵循现有的命名约定
-- 添加适当的错误处理
-- 记录重要操作的审计日志
+### 添加新功能模块
 
-## 📈 性能优化
+1. 在 `pages/` 目录下创建新文件夹
+2. 创建 `index.html` 和对应的 `.js` 文件
+3. 在侧边栏导航中添加链接
+4. 根据需要在Supabase中创建新表
 
-### 前端优化
-- 组件懒加载
-- 图片优化和压缩
-- 缓存策略
-- 代码分割
+## 📱 移动端支持
 
-### 数据库优化
-- 合理的索引设计
-- 查询优化
-- 连接池管理
-- 数据分页
+系统采用响应式设计，完美支持移动设备：
+- 自适应布局
+- 触摸友好的界面
+- 移动端优化的导航
 
-## 🐛 故障排除
+## 🔒 安全特性
 
-### 常见问题
-1. **登录失败**: 检查Supabase配置和网络连接
-2. **数据加载慢**: 检查数据库查询和网络状况
-3. **权限错误**: 确认用户角色和RLS策略
-4. **文件上传失败**: 检查文件大小和类型限制
+- 基于Supabase的安全认证
+- 行级安全策略 (RLS)
+- 密码加密存储
+- 会话管理
+- CSRF保护
 
-### 调试技巧
-- 使用浏览器开发者工具
-- 查看控制台错误信息
-- 检查网络请求状态
-- 验证数据库连接
+## 🚀 部署指南
 
-## 📝 更新日志
+### 静态托管部署
 
-### v1.0.0 (2024-01-XX)
-- 初始版本发布
-- 基础功能模块完成
-- 用户认证和权限系统
-- 文档和配方管理功能
+项目可以部署到任何静态托管服务：
+
+1. **Vercel**
+   ```bash
+   npm i -g vercel
+   vercel
+   ```
+
+2. **Netlify**
+   - 直接拖拽项目文件夹到Netlify
+   - 或连接Git仓库自动部署
+
+3. **GitHub Pages**
+   - 推送代码到GitHub仓库
+   - 在仓库设置中启用Pages
 
 ## 🤝 贡献指南
 
-欢迎提交Issue和Pull Request来改进项目。
-
-### 贡献流程
-1. Fork项目
-2. 创建功能分支
-3. 提交更改
-4. 创建Pull Request
+欢迎提交Issue和Pull Request来改进项目！
 
 ## 📄 许可证
 
-本项目采用MIT许可证。详见LICENSE文件。
+本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
 
-## 📞 联系方式
+## 📞 支持
 
-如有问题或建议，请通过以下方式联系：
-
-- 项目Issues: [GitHub Issues]
-- 邮箱: [项目邮箱]
+如有问题或建议，请：
+- 提交 [Issue](https://github.com/your-repo/issues)
+- 发送邮件到 support@example.com
 
 ---
 
-**火锅店OA系统** - 让火锅店管理更简单、更高效！
+**今岭火锅店OA系统** - 让管理更简单，让工作更高效！ 🔥

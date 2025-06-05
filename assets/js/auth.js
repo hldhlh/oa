@@ -1,291 +1,244 @@
-// 认证管理
-class AuthManager {
-    constructor() {
-        this.currentUser = null;
-        this.isAuthenticated = false;
-        this.userRole = null;
-        this.init();
-    }
-
-    // 初始化认证管理器
-    async init() {
-        try {
-            // 检查当前用户状态
-            await this.checkAuthStatus();
-            
-            // 监听认证状态变化
-            SupabaseAuth.onAuthStateChange((event, session) => {
-                this.handleAuthStateChange(event, session);
-            });
-        } catch (error) {
-            console.error('认证初始化失败:', error);
-        }
-    }
-
-    // 检查认证状态
-    async checkAuthStatus() {
-        try {
-            const user = await SupabaseAuth.getCurrentUser();
-            if (user) {
-                this.currentUser = user;
-                this.isAuthenticated = true;
-                await this.loadUserProfile();
-                this.redirectToDashboard();
-            } else {
-                this.showAuthPage();
-            }
-        } catch (error) {
-            // 如果是认证相关错误，直接显示登录页面
-            console.log('用户未登录，显示登录页面');
-            this.showAuthPage();
-        }
-    }
-
-    // 处理认证状态变化
-    async handleAuthStateChange(event, session) {
-        if (event === 'SIGNED_IN' && session) {
-            this.currentUser = session.user;
-            this.isAuthenticated = true;
-            await this.loadUserProfile();
-            this.redirectToDashboard();
-            showToast('登录成功！', 'success');
-        } else if (event === 'SIGNED_OUT') {
-            this.currentUser = null;
-            this.isAuthenticated = false;
-            this.userRole = null;
-            this.showAuthPage();
-            showToast('已退出登录', 'info');
-        }
-    }
-
-    // 加载用户资料
-    async loadUserProfile() {
-        try {
-            const profileTable = new SupabaseTable('user_profiles');
-            const profile = await profileTable.findWhere({ user_id: this.currentUser.id });
-            
-            if (profile && profile.length > 0) {
-                this.userRole = profile[0].role;
-                this.userProfile = profile[0];
-            } else {
-                // 创建默认用户资料
-                await this.createDefaultProfile();
-            }
-        } catch (error) {
-            console.error('加载用户资料失败:', error);
-            this.userRole = 'staff'; // 默认角色
-        }
-    }
-
-    // 创建默认用户资料
-    async createDefaultProfile() {
-        try {
-            const profileTable = new SupabaseTable('user_profiles');
-            const defaultProfile = {
-                user_id: this.currentUser.id,
-                email: this.currentUser.email,
-                name: this.currentUser.user_metadata?.name || '新用户',
-                role: 'staff',
-                status: 'active',
-                created_at: new Date().toISOString()
-            };
-            
-            this.userProfile = await profileTable.create(defaultProfile);
-            this.userRole = 'staff';
-        } catch (error) {
-            console.error('创建用户资料失败:', error);
-        }
-    }
-
-    // 登录
-    async login(email, password) {
-        try {
-            showLoading(true);
-            const result = await SupabaseAuth.signIn(email, password);
-            
-            // 记录登录日志
-            await this.logUserAction('login', { email });
-            
-            return result;
-        } catch (error) {
-            showToast(error.message, 'error');
-            throw error;
-        } finally {
-            showLoading(false);
-        }
-    }
-
-    // 注册
-    async register(email, password, userData = {}) {
-        try {
-            showLoading(true);
-
-            // 构建用户元数据
-            const userMetadata = {
-                name: userData.name || '新用户',
-                phone: userData.phone || '',
-                role: userData.role || 'staff'
-            };
-
-            const result = await SupabaseAuth.signUp(email, password, userMetadata);
-
-            if (result.user && !result.user.email_confirmed_at) {
-                showToast('注册成功！请检查邮箱验证链接。', 'success');
-            } else if (result.user) {
-                showToast('注册成功！', 'success');
-            }
-
-            return result;
-        } catch (error) {
-            showToast(error.message, 'error');
-            throw error;
-        } finally {
-            showLoading(false);
-        }
-    }
-
-    // 登出
-    async logout() {
-        try {
-            // 记录登出日志
-            await this.logUserAction('logout');
-            
-            await SupabaseAuth.signOut();
-        } catch (error) {
-            console.error('登出失败:', error);
-            showToast('登出失败', 'error');
-        }
-    }
-
-    // 重置密码
-    async resetPassword(email) {
-        try {
-            await SupabaseAuth.resetPassword(email);
-            showToast('密码重置邮件已发送', 'success');
-        } catch (error) {
-            showToast(error.message, 'error');
-            throw error;
-        }
-    }
-
-    // 检查权限
-    hasPermission(requiredRole) {
-        const roleHierarchy = {
-            'viewer': 1,
-            'staff': 2,
-            'manager': 3,
-            'admin': 4
-        };
-
-        const userLevel = roleHierarchy[this.userRole] || 0;
-        const requiredLevel = roleHierarchy[requiredRole] || 0;
-
-        return userLevel >= requiredLevel;
-    }
-
-    // 权限守卫
-    requirePermission(requiredRole) {
-        if (!this.isAuthenticated) {
-            this.showAuthPage();
-            return false;
-        }
-
-        if (!this.hasPermission(requiredRole)) {
-            showToast('权限不足', 'error');
-            return false;
-        }
-
-        return true;
-    }
-
-    // 显示认证页面
-    showAuthPage() {
-        hideLoading();
-        const mainApp = document.getElementById('main-app');
-        const authPage = document.getElementById('auth-page');
-
-        if (mainApp) mainApp.classList.add('hidden');
-        if (authPage) authPage.classList.remove('hidden');
-
-        // 如果不在登录页面，重定向到登录页面
-        if (!window.location.pathname.endsWith('index.html') && window.location.pathname !== '/') {
-            window.location.href = 'index.html';
-        }
-    }
-
-    // 重定向到仪表板
-    redirectToDashboard() {
-        hideLoading();
-        const authPage = document.getElementById('auth-page');
-        const mainApp = document.getElementById('main-app');
-
-        if (authPage) authPage.classList.add('hidden');
-
-        // 如果当前页面是登录页面，则重定向到仪表板
-        if (window.location.pathname.endsWith('index.html') || window.location.pathname === '/') {
-            window.location.href = 'dashboard.html';
-        } else {
-            // 如果已经在其他页面，显示主应用内容
-            if (mainApp) mainApp.classList.remove('hidden');
-        }
-    }
-
-    // 记录用户操作日志
-    async logUserAction(action, details = {}) {
-        try {
-            const logTable = new SupabaseTable('audit_logs');
-            await logTable.create({
-                user_id: this.currentUser?.id,
-                action,
-                details: JSON.stringify(details),
-                ip_address: await this.getClientIP(),
-                user_agent: navigator.userAgent,
-                timestamp: new Date().toISOString()
-            });
-        } catch (error) {
-            console.error('记录日志失败:', error);
-        }
-    }
-
-    // 获取客户端IP（简化版）
-    async getClientIP() {
-        try {
-            const response = await fetch('https://api.ipify.org?format=json');
-            const data = await response.json();
-            return data.ip;
-        } catch (error) {
-            return 'unknown';
-        }
-    }
-
-    // 获取当前用户信息
-    getCurrentUser() {
-        return {
-            user: this.currentUser,
-            profile: this.userProfile,
-            role: this.userRole,
-            isAuthenticated: this.isAuthenticated
-        };
-    }
-}
-
-// 全局认证管理器实例
-let authManager = null;
-
-// 初始化认证
-function initAuth() {
-    authManager = new AuthManager();
-    return authManager;
-}
-
-// 初始化认证管理器
+// 认证相关功能
 document.addEventListener('DOMContentLoaded', function() {
-    if (!authManager) {
-        authManager = initAuth();
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    const showRegisterBtn = document.getElementById('showRegister');
+    const showLoginBtn = document.getElementById('showLogin');
+    const loginBtn = document.getElementById('loginBtn');
+    const registerBtn = document.getElementById('registerBtn');
+
+    // 切换到注册表单
+    if (showRegisterBtn) {
+        showRegisterBtn.addEventListener('click', function() {
+            loginForm.classList.add('hidden');
+            registerForm.classList.remove('hidden');
+        });
+    }
+
+    // 切换到登录表单
+    if (showLoginBtn) {
+        showLoginBtn.addEventListener('click', function() {
+            registerForm.classList.add('hidden');
+            loginForm.classList.remove('hidden');
+        });
+    }
+
+    // 登录表单提交
+    if (loginForm) {
+        loginForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!email || !password) {
+                showMessage('请填写完整的登录信息', 'error');
+                return;
+            }
+
+            // 显示加载状态
+            loginBtn.disabled = true;
+            loginBtn.textContent = '登录中...';
+
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+                if (error) {
+                    throw error;
+                }
+
+                showMessage('登录成功！正在跳转...', 'success');
+
+                // 延迟跳转，让用户看到成功消息
+                setTimeout(() => {
+                    const dashboardPath = window.location.pathname.includes('/pages/') ? '../../dashboard.html' : 'dashboard.html';
+                    window.location.href = dashboardPath;
+                }, 1000);
+
+            } catch (error) {
+                console.error('登录错误:', error);
+                let errorMessage = '登录失败，请检查邮箱和密码';
+                
+                if (error.message.includes('Invalid login credentials')) {
+                    errorMessage = '邮箱或密码错误';
+                } else if (error.message.includes('Email not confirmed')) {
+                    errorMessage = '请先验证您的邮箱';
+                } else if (error.message.includes('Too many requests')) {
+                    errorMessage = '请求过于频繁，请稍后再试';
+                }
+                
+                showMessage(errorMessage, 'error');
+            } finally {
+                // 恢复按钮状态
+                loginBtn.disabled = false;
+                loginBtn.textContent = '登录';
+            }
+        });
+    }
+
+    // 注册表单提交
+    if (registerForm) {
+        registerForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('reg-name').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+            const confirmPassword = document.getElementById('reg-confirm-password').value;
+            
+            // 表单验证
+            if (!name || !email || !password || !confirmPassword) {
+                showMessage('请填写完整的注册信息', 'error');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                showMessage('两次输入的密码不一致', 'error');
+                return;
+            }
+
+            if (password.length < 6) {
+                showMessage('密码长度至少为6位', 'error');
+                return;
+            }
+
+            // 邮箱格式验证
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showMessage('请输入有效的邮箱地址', 'error');
+                return;
+            }
+
+            // 显示加载状态
+            registerBtn.disabled = true;
+            registerBtn.textContent = '注册中...';
+
+            try {
+                const { data, error } = await supabase.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: {
+                            name: name,
+                            role: 'employee' // 默认角色为员工
+                        }
+                    }
+                });
+
+                if (error) {
+                    throw error;
+                }
+
+                showMessage('注册成功！请检查邮箱验证链接', 'success');
+                
+                // 清空表单
+                registerForm.reset();
+                
+                // 切换到登录表单
+                setTimeout(() => {
+                    registerForm.classList.add('hidden');
+                    loginForm.classList.remove('hidden');
+                }, 2000);
+
+            } catch (error) {
+                console.error('注册错误:', error);
+                let errorMessage = '注册失败，请稍后重试';
+                
+                if (error.message.includes('User already registered')) {
+                    errorMessage = '该邮箱已被注册';
+                } else if (error.message.includes('Password should be at least 6 characters')) {
+                    errorMessage = '密码长度至少为6位';
+                } else if (error.message.includes('Unable to validate email address')) {
+                    errorMessage = '邮箱地址格式不正确';
+                }
+                
+                showMessage(errorMessage, 'error');
+            } finally {
+                // 恢复按钮状态
+                registerBtn.disabled = false;
+                registerBtn.textContent = '注册账号';
+            }
+        });
     }
 });
 
-// 导出认证管理器
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { AuthManager, initAuth };
+// 登出功能
+async function signOut() {
+    try {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+            throw error;
+        }
+        
+        showMessage('已成功登出', 'success');
+        const indexPath = window.location.pathname.includes('/pages/') ? '../../index.html' : 'index.html';
+        window.location.href = indexPath;
+    } catch (error) {
+        console.error('登出错误:', error);
+        showMessage('登出失败，请重试', 'error');
+    }
 }
+
+// 获取当前用户信息
+async function getCurrentUser() {
+    try {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (error) {
+            throw error;
+        }
+        return user;
+    } catch (error) {
+        console.error('获取用户信息错误:', error);
+        return null;
+    }
+}
+
+// 更新用户资料
+async function updateUserProfile(updates) {
+    try {
+        const { data, error } = await supabase.auth.updateUser({
+            data: updates
+        });
+        
+        if (error) {
+            throw error;
+        }
+        
+        return data;
+    } catch (error) {
+        console.error('更新用户资料错误:', error);
+        throw error;
+    }
+}
+
+// 重置密码
+async function resetPassword(email) {
+    try {
+        const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: `${window.location.origin}/reset-password.html`
+        });
+        
+        if (error) {
+            throw error;
+        }
+        
+        return data;
+    } catch (error) {
+        console.error('重置密码错误:', error);
+        throw error;
+    }
+}
+
+// 导出函数供全局使用
+window.authFunctions = {
+    signOut,
+    getCurrentUser,
+    updateUserProfile,
+    resetPassword
+};
+
+// 同时将getCurrentUser导出为全局函数，方便其他模块使用
+window.getCurrentUser = getCurrentUser;
