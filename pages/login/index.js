@@ -1,6 +1,8 @@
 import { login } from '../../utils/auth.js';
 import { validateForm, showNotification } from '../../utils/helpers.js';
 import { createButton, createInput, createAlert } from '../../components/ui.js';
+import { translateErrorMessage } from '../../utils/errorMessages.js';
+import { navigateTo } from '../../app.js';
 
 // 登录页面渲染函数
 export default function renderLoginPage(container) {
@@ -104,9 +106,7 @@ export default function renderLoginPage(container) {
                     message: '请输入有效的邮箱地址'
                 },
                 password: {
-                    required: true,
-                    minLength: 8,
-                    message: '密码长度至少为8个字符'
+                    required: true
                 }
             }
         );
@@ -149,15 +149,18 @@ export default function renderLoginPage(container) {
             
             // 延迟跳转
             setTimeout(() => {
-                window.location.href = '/dashboard';
+                navigateTo('/dashboard');
             }, 1000);
         } catch (error) {
             console.error('登录失败:', error);
             
+            // 翻译错误消息
+            const errorMessage = translateErrorMessage(error.message) || '邮箱或密码错误，请重试';
+            
             // 创建错误提示
             const errorAlert = createAlert({
                 title: '登录失败',
-                message: error.message || '邮箱或密码错误，请重试',
+                message: errorMessage,
                 type: 'error'
             });
             

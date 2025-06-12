@@ -1,6 +1,8 @@
 import { register } from '../../utils/auth.js';
 import { validateForm, showNotification } from '../../utils/helpers.js';
 import { createButton, createInput, createAlert } from '../../components/ui.js';
+import { translateErrorMessage } from '../../utils/errorMessages.js';
+import { navigateTo } from '../../app.js';
 
 // 注册页面渲染函数
 export default function renderRegisterPage(container) {
@@ -142,9 +144,7 @@ export default function renderRegisterPage(container) {
             },
             {
                 username: {
-                    required: true,
-                    minLength: 3,
-                    message: '用户名长度至少为3个字符'
+                    required: true
                 },
                 email: {
                     required: true,
@@ -152,10 +152,7 @@ export default function renderRegisterPage(container) {
                     message: '请输入有效的邮箱地址'
                 },
                 password: {
-                    required: true,
-                    minLength: 8,
-                    pattern: /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/,
-                    message: '密码长度至少为8个字符，且包含字母和数字'
+                    required: true
                 },
                 confirmPassword: {
                     required: true,
@@ -212,17 +209,20 @@ export default function renderRegisterPage(container) {
             // 注册成功
             showNotification('注册成功，请登录您的账号', 'success');
             
-            // 延迟跳转到登录页
+            // 延迟跳转到登录页，使用SPA导航
             setTimeout(() => {
-                window.location.href = '/login';
+                navigateTo('/login');
             }, 1500);
         } catch (error) {
             console.error('注册失败:', error);
             
+            // 翻译错误消息
+            const errorMessage = translateErrorMessage(error.message) || '注册失败，请重试';
+            
             // 创建错误提示
             const errorAlert = createAlert({
                 title: '注册失败',
-                message: error.message || '注册失败，请重试',
+                message: errorMessage,
                 type: 'error'
             });
             

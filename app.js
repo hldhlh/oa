@@ -115,10 +115,13 @@ const renderPage = async () => {
 };
 
 // 导航到指定路径
-const navigateTo = (path) => {
+export const navigateTo = (path) => {
     window.history.pushState({}, '', path);
     renderPage();
 };
+
+// 为了向后兼容，将navigateTo添加到window对象
+window.navigateTo = navigateTo;
 
 // 监听浏览器前进/后退
 window.addEventListener('popstate', renderPage);
