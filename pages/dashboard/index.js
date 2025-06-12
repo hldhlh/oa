@@ -22,17 +22,7 @@ export default async function renderDashboardPage(container) {
                         <h1 class="text-2xl font-bold text-gray-800">欢迎回来，${user.user_metadata?.username || '用户'}</h1>
                         <p class="text-gray-600 mt-2">今天是 ${formatDate(new Date(), 'YYYY年MM月DD日')}，祝您工作愉快！</p>
                     </div>
-                    <div class="mt-4 md:mt-0">
-                        <div class="flex items-center gap-2 bg-primary bg-opacity-10 rounded-xl p-3">
-                            <div class="w-10 h-10 rounded-full bg-accent flex items-center justify-center text-white font-medium">
-                                ${user.email ? user.email.charAt(0).toUpperCase() : 'U'}
-                            </div>
-                            <div>
-                                <div class="font-medium text-gray-800">${user.user_metadata?.username || '用户'}</div>
-                                <div class="text-sm text-gray-500">${user.email}</div>
-                            </div>
-                        </div>
-                    </div>
+
                 </div>
             </div>
             
