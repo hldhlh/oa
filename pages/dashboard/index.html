@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OA系统 - 工作台</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 自定义Tailwind配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#f8a5c2',
+                        secondary: '#c5f8a5',
+                        accent: '#a5c8f8',
+                        background: '#f9f9f9',
+                    },
+                    borderRadius: {
+                        'xl': '1rem',
+                        '2xl': '1.5rem',
+                    },
+                    boxShadow: {
+                        'neumorphism': '10px 10px 20px #d9d9d9, -10px -10px 20px #ffffff',
+                        'neumorphism-inset': 'inset 5px 5px 10px #d9d9d9, inset -5px -5px 10px #ffffff',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- 图标系统 -->
+    <svg style="display: none;">
+        <!-- 用户图标 -->
+        <symbol id="icon-user" viewBox="0 0 24 24">
+            <circle cx="12" cy="8" r="5" stroke="currentColor" stroke-width="2" fill="none"></circle>
+            <path d="M3 21v-2a7 7 0 0 1 7-7h4a7 7 0 0 1 7 7v2" stroke="currentColor" stroke-width="2" fill="none"></path>
+        </symbol>
+        <!-- 首页图标 -->
+        <symbol id="icon-home" viewBox="0 0 24 24">
+            <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
+        </symbol>
+        <!-- 文档图标 -->
+        <symbol id="icon-document" viewBox="0 0 24 24">
+            <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
+        </symbol>
+        <!-- 设置图标 -->
+        <symbol id="icon-settings" viewBox="0 0 24 24">
+            <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
+            <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></circle>
+        </symbol>
+    </svg>
+</head>
+<body class="bg-background min-h-screen">
+    <div id="app" class="container mx-auto px-4 py-6">
+        <!-- 页面内容将在这里动态加载 -->
+        <div id="content" class="mt-8"></div>
+    </div>
+    
+    <!-- 主应用脚本 -->
+    <script src="../app.js" type="module"></script>
+</body>
+</html> 
