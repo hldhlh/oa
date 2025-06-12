@@ -32,7 +32,7 @@ export async function renderHeader(container) {
                 <!-- 用户菜单 -->
                 <div class="relative" id="user-menu-container">
                     ${user ? `
-                        <button id="user-menu-button" class="flex items-center gap-2 bg-background rounded-xl p-2 hover:shadow-neumorphism transition-all">
+                        <button id="user-menu-button" class="flex items-center gap-2 bg-background rounded-xl p-2 hover:shadow-sm transition-all">
                             <div class="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-white font-medium">
                                 ${user.email ? user.email.charAt(0).toUpperCase() : 'U'}
                             </div>

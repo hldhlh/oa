@@ -24,7 +24,7 @@ export default function renderHomePage(container) {
             </div>
             
             <!-- 统计数据 -->
-            <div class="bg-white rounded-2xl shadow-neumorphism p-8 mb-16">
+            <div class="bg-white rounded-2xl content-card p-8 mb-16">
                 <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">系统概览</h2>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div class="text-center p-4">
@@ -47,7 +47,7 @@ export default function renderHomePage(container) {
             </div>
             
             <!-- 动态图表 -->
-            <div class="bg-white rounded-2xl shadow-neumorphism p-8 mb-16">
+            <div class="bg-white rounded-2xl content-card p-8 mb-16">
                 <h2 class="text-2xl font-bold text-gray-800 mb-6">工作效率趋势</h2>
                 <div class="h-64 relative">
                     <svg class="w-full h-full" viewBox="0 0 800 300" preserveAspectRatio="none">

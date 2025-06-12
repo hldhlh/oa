@@ -9,7 +9,7 @@ export default function renderLoginPage(container) {
     // 创建登录页面内容
     container.innerHTML = `
         <div class="flex justify-center items-center py-12">
-            <div class="bg-white rounded-2xl shadow-neumorphism p-8 w-full max-w-md">
+            <div class="bg-white rounded-2xl content-card p-8 w-full max-w-md">
                 <div class="text-center mb-8">
                     <div class="inline-block p-3 bg-primary bg-opacity-20 rounded-full mb-4">
                         <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">

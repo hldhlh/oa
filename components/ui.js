@@ -161,7 +161,7 @@ export function createCard({
     hoverable = false
 }) {
     const card = document.createElement('div');
-    card.className = `bg-white rounded-2xl shadow-neumorphism p-6 ${hoverable ? 'hover:shadow-lg transition-shadow cursor-pointer' : ''} ${className}`;
+    card.className = `bg-white rounded-2xl content-card p-6 ${hoverable ? 'hover:shadow-lg transition-shadow cursor-pointer' : ''} ${className}`;
     
     if (onClick) {
         card.addEventListener('click', onClick);

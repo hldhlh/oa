@@ -9,11 +9,21 @@
 
 /* 自定义阴影效果 */
 .shadow-neumorphism {
-  box-shadow: 10px 10px 20px #d9d9d9, -10px -10px 20px #ffffff;
+  box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.05), -5px -5px 15px rgba(255, 255, 255, 0.6);
 }
 
 .shadow-neumorphism-inset {
-  box-shadow: inset 5px 5px 10px #d9d9d9, inset -5px -5px 10px #ffffff;
+  box-shadow: inset 3px 3px 7px rgba(0, 0, 0, 0.05), inset -3px -3px 7px rgba(255, 255, 255, 0.6);
+}
+
+/* 内容卡片阴影 - 更轻柔的版本 */
+.content-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03), 0 1px 4px rgba(0, 0, 0, 0.02);
+  transition: box-shadow 0.3s ease;
+}
+
+.content-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05), 0 2px 6px rgba(0, 0, 0, 0.03);
 }
 
 /* 自定义圆角 */
@@ -62,9 +72,9 @@ header.fixed {
   transition: all 0.3s ease;
 }
 
-/* 滚动时导航栏样式 */
+/* 滚动时导航栏样式 - 更明显的阴影 */
 header.fixed.scrolled {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 10px -2px rgba(0, 0, 0, 0.1), 0 2px 6px -1px rgba(0, 0, 0, 0.06);
 }
 
 /* 移动端菜单样式 */
@@ -81,4 +91,10 @@ header.fixed.scrolled {
 /* 页面内容样式 */
 body {
   padding-top: var(--header-height);
+}
+
+/* 内容区域样式 */
+#content {
+  position: relative;
+  z-index: 1; /* 确保内容在适当的层级 */
 }
