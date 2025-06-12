@@ -1,0 +1,94 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+## Supabase认证规范
+
+### 配置信息
+- **项目URL**: https://ainzxxuoweieowjyalgf.supabase.co
+- **API密钥**: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpbnp4eHVvd2VpZW93anlhbGdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU3Njc0ODYsImV4cCI6MjA2MTM0MzQ4Nn0.FLndEbZjMTXEAwyBpzMxgzOh-t3DAfELIn6GthcBJ8s
+
+### 文件结构
+```
+utils/
+├── api.js         # Supabase客户端初始化和数据操作
+└── auth.js        # 认证相关功能封装
+```
+
+### 认证流程
+1. **初始化**: 使用`loadSupabase()`函数初始化Supabase客户端
+2. **注册**: 调用`register(email, password, userData)`函数
+3. **登录**: 调用`login(email, password)`函数
+4. **登出**: 调用`logout()`函数
+5. **会话管理**: 使用`onAuthStateChange(callback)`监听认证状态变化
+
+### 用户界面
+- **登录页**: `/login`路径，包含邮箱和密码表单
+- **注册页**: `/register`路径，包含用户名、邮箱和密码表单
+- **用户菜单**: 根据登录状态在头部显示不同的用户菜单
+
+### 安全规范
+1. **密码规则**: 最少8个字符，包含字母和数字
+2. **表单验证**: 前端进行基本验证，后端进行完整验证
+3. **错误处理**: 显示友好的错误信息，不暴露敏感信息
+4. **会话管理**: 自动刷新会话，确保用户体验连贯
+
+### 开发指南
+1. **API调用**: 所有Supabase API调用应使用`utils/api.js`和`utils/auth.js`中的函数
+2. **错误处理**: 使用try/catch捕获并处理所有API调用的错误
+3. **UI反馈**: 操作过程中显示加载状态，操作结束后显示结果反馈
+4. **路由处理**: 认证成功后自动跳转到相应页面
+
+### 代码示例
+
+#### 初始化Supabase客户端
+```javascript
+// 在api.js中
+export async function loadSupabase() {
+    if (!supabase) {
+        const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+        supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+    return supabase;
+}
+```
+
+#### 用户注册
+```javascript
+// 在auth.js中
+export async function register(email, password, userData = {}) {
+    const supabase = await loadSupabase();
+    return supabase.auth.signUp({
+        email,
+        password,
+        options: { data: userData }
+    });
+}
+```
+
+#### 用户登录
+```javascript
+// 在auth.js中
+export async function login(email, password) {
+    const supabase = await loadSupabase();
+    return supabase.auth.signInWithPassword({ email, password });
+}
+```
+
+#### 监听认证状态
+```javascript
+// 在组件中
+import { onAuthStateChange } from '../utils/auth.js';
+
+const unsubscribe = await onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN') {
+        // 用户已登录
+    } else if (event === 'SIGNED_OUT') {
+        // 用户已登出
+    }
+});
+
+// 取消订阅
+unsubscribe.subscription.unsubscribe();
+```
