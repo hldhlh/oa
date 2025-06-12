@@ -84,4 +84,30 @@ export async function checkPermission(requiredRole) {
     };
     
     return roles[userRole] >= roles[requiredRole];
+}
+
+// 获取所有用户列表
+export async function getAllUsers() {
+    const supabase = await loadSupabase();
+    const { data, error } = await supabase.from('profiles').select('*');
+    
+    if (error) {
+        console.error('获取用户列表失败:', error);
+        return [];
+    }
+    
+    // 如果没有数据，至少返回当前用户
+    if (!data || data.length === 0) {
+        const currentUser = await getCurrentUser();
+        if (currentUser) {
+            return [{
+                id: currentUser.id,
+                username: currentUser.user_metadata?.username || '用户',
+                email: currentUser.email,
+                job_title: currentUser.user_metadata?.job_title || '团队成员'
+            }];
+        }
+    }
+    
+    return data || [];
 } 

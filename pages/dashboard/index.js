@@ -1,4 +1,4 @@
-import { getCurrentUser, requireAuth } from '../../utils/auth.js';
+import { getCurrentUser, requireAuth, getAllUsers } from '../../utils/auth.js';
 import { formatDate } from '../../utils/helpers.js';
 import { createCard, createBadge, createTable } from '../../components/ui.js';
 
@@ -11,6 +11,19 @@ export default async function renderDashboardPage(container) {
     
     // 获取当前用户
     const user = await getCurrentUser();
+    
+    // 获取所有用户（团队成员）
+    let teamMembers = await getAllUsers();
+    
+    // 如果没有团队成员，至少添加当前用户
+    if (!teamMembers || teamMembers.length === 0) {
+        teamMembers = [{
+            id: user.id,
+            username: user.user_metadata?.username || '用户',
+            email: user.email,
+            job_title: user.user_metadata?.job_title || '团队成员'
+        }];
+    }
     
     // 创建仪表盘内容
     container.innerHTML = `
@@ -148,27 +161,25 @@ export default async function renderDashboardPage(container) {
                     <button class="text-primary hover:underline">管理团队</button>
                 </div>
                 <div class="bg-white rounded-2xl shadow-neumorphism p-6">
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div class="flex flex-col items-center p-3 hover:bg-gray-50 rounded-xl transition-colors">
-                            <div class="w-16 h-16 rounded-full bg-accent flex items-center justify-center text-white text-xl font-bold mb-2">ZS</div>
-                            <div class="font-medium text-gray-800">张三</div>
-                            <div class="text-sm text-gray-500">产品经理</div>
-                        </div>
-                        <div class="flex flex-col items-center p-3 hover:bg-gray-50 rounded-xl transition-colors">
-                            <div class="w-16 h-16 rounded-full bg-primary flex items-center justify-center text-white text-xl font-bold mb-2">LS</div>
-                            <div class="font-medium text-gray-800">李四</div>
-                            <div class="text-sm text-gray-500">UI设计师</div>
-                        </div>
-                        <div class="flex flex-col items-center p-3 hover:bg-gray-50 rounded-xl transition-colors">
-                            <div class="w-16 h-16 rounded-full bg-green-400 flex items-center justify-center text-white text-xl font-bold mb-2">WW</div>
-                            <div class="font-medium text-gray-800">王五</div>
-                            <div class="text-sm text-gray-500">前端开发</div>
-                        </div>
-                        <div class="flex flex-col items-center p-3 hover:bg-gray-50 rounded-xl transition-colors">
-                            <div class="w-16 h-16 rounded-full bg-yellow-400 flex items-center justify-center text-white text-xl font-bold mb-2">ZL</div>
-                            <div class="font-medium text-gray-800">赵六</div>
-                            <div class="text-sm text-gray-500">后端开发</div>
-                        </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="team-members-container">
+                        ${teamMembers.length > 0 ? 
+                            teamMembers.map(member => {
+                                const initials = member.username ? member.username.substring(0, 2).toUpperCase() : 'U';
+                                const randomColors = ['bg-accent', 'bg-primary', 'bg-green-400', 'bg-yellow-400', 'bg-blue-400', 'bg-purple-400'];
+                                const bgColor = randomColors[Math.floor(Math.random() * randomColors.length)];
+                                
+                                return `
+                                <div class="flex flex-col items-center p-3 hover:bg-gray-50 rounded-xl transition-colors">
+                                    <div class="w-16 h-16 rounded-full ${bgColor} flex items-center justify-center text-white text-xl font-bold mb-2">
+                                        ${initials}
+                                    </div>
+                                    <div class="font-medium text-gray-800">${member.username || '用户'}</div>
+                                    <div class="text-sm text-gray-500">${member.job_title || '团队成员'}</div>
+                                </div>
+                                `;
+                            }).join('')
+                            : '<div class="col-span-4 text-center py-4 text-gray-500">暂无团队成员</div>'
+                        }
                     </div>
                 </div>
             </div>
