@@ -7,8 +7,8 @@ export async function renderHeader(container) {
     
     // 创建头部HTML
     container.innerHTML = `
-        <header class="bg-white rounded-2xl shadow-neumorphism p-4 mb-6">
-            <div class="flex justify-between items-center">
+        <header class="fixed top-0 left-0 right-0 z-50 bg-white shadow-md px-4 py-3">
+            <div class="container mx-auto flex justify-between items-center">
                 <!-- Logo -->
                 <a href="/" class="flex items-center gap-2">
                     <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold text-lg">OA</div>
@@ -65,10 +65,15 @@ export async function renderHeader(container) {
             
             <!-- 移动端导航菜单 -->
             <div id="mobile-menu" class="hidden md:hidden mt-4 pt-4 border-t border-gray-200">
-                <a href="/" class="block py-2 text-gray-600 hover:text-primary">首页</a>
-                ${user ? `<a href="/dashboard" class="block py-2 text-gray-600 hover:text-primary">工作台</a>` : ''}
+                <div class="container mx-auto">
+                    <a href="/" class="block py-2 text-gray-600 hover:text-primary">首页</a>
+                    ${user ? `<a href="/dashboard" class="block py-2 text-gray-600 hover:text-primary">工作台</a>` : ''}
+                </div>
             </div>
         </header>
+        
+        <!-- 占位元素，防止内容被固定导航栏遮挡 -->
+        <div class="h-16 md:h-16"></div>
     `;
     
     // 添加事件监听
@@ -114,6 +119,29 @@ export async function renderHeader(container) {
     if (mobileMenuButton && mobileMenu) {
         mobileMenuButton.addEventListener('click', () => {
             mobileMenu.classList.toggle('hidden');
+            mobileMenu.classList.toggle('active');
         });
+    }
+    
+    // 添加滚动事件监听器
+    const header = container.querySelector('header');
+    if (header) {
+        // 初始检查滚动位置
+        if (window.scrollY > 10) {
+            header.classList.add('scrolled');
+        } else {
+            header.classList.remove('scrolled');
+        }
+        
+        // 监听滚动事件
+        const handleScroll = () => {
+            if (window.scrollY > 10) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+        };
+        
+        window.addEventListener('scroll', handleScroll);
     }
 } 

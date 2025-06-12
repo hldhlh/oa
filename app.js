@@ -6,6 +6,19 @@ import { getCurrentUser, onAuthStateChange } from './utils/auth.js';
 import { renderHeader } from './components/header.js';
 import { renderFooter } from './components/footer.js';
 
+// 加载SVG图标
+const loadIcons = async () => {
+    try {
+        const response = await fetch('./assets/icons.svg');
+        const svgText = await response.text();
+        const parser = new DOMParser();
+        const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
+        document.body.appendChild(svgDoc.documentElement);
+    } catch (error) {
+        console.error('加载图标失败:', error);
+    }
+};
+
 // 页面路由配置
 const routes = {
     '/': './pages/home/index.js',
@@ -52,10 +65,10 @@ const renderPage = async () => {
                 existingFooter.remove();
             }
             
-            // 渲染头部
+            // 渲染头部 - 插入到body开始位置
             const headerElement = document.createElement('div');
             headerElement.id = 'header';
-            appElement.prepend(headerElement);
+            document.body.insertBefore(headerElement, document.body.firstChild);
             renderHeader(headerElement);
             
             // 渲染内容
@@ -112,22 +125,23 @@ window.addEventListener('popstate', renderPage);
 
 // 初始化应用
 const initApp = async () => {
+    // 加载SVG图标
+    await loadIcons();
+    
     // 初始化Supabase客户端
     await loadSupabase();
     
     // 监听认证状态变化
     onAuthStateChange((event, session) => {
         // 根据认证状态更新UI
-        if (isMainPage) {
-            const headerElement = document.getElementById('header');
-            if (headerElement) {
-                renderHeader(headerElement);
-            }
-            
-            // 如果用户登出且当前在需要认证的页面，则重定向到首页
-            if (event === 'SIGNED_OUT' && getCurrentPath() === '/dashboard') {
-                navigateTo('/');
-            }
+        const headerElement = document.getElementById('header');
+        if (headerElement) {
+            renderHeader(headerElement);
+        }
+        
+        // 如果用户登出且当前在需要认证的页面，则重定向到首页
+        if (event === 'SIGNED_OUT' && getCurrentPath() === '/dashboard') {
+            navigateTo('/');
         }
     });
     

@@ -1,0 +1,84 @@
+/* Tailwind 自定义配置 */
+:root {
+  --color-primary: #f8a5c2;
+  --color-secondary: #c5f8a5;
+  --color-accent: #a5c8f8;
+  --color-background: #f9f9f9;
+  --header-height: 64px;
+}
+
+/* 自定义阴影效果 */
+.shadow-neumorphism {
+  box-shadow: 10px 10px 20px #d9d9d9, -10px -10px 20px #ffffff;
+}
+
+.shadow-neumorphism-inset {
+  box-shadow: inset 5px 5px 10px #d9d9d9, inset -5px -5px 10px #ffffff;
+}
+
+/* 自定义圆角 */
+.rounded-xl {
+  border-radius: 1rem;
+}
+
+.rounded-2xl {
+  border-radius: 1.5rem;
+}
+
+/* 自定义颜色类 */
+.text-primary { color: var(--color-primary); }
+.text-secondary { color: var(--color-secondary); }
+.text-accent { color: var(--color-accent); }
+.bg-primary { background-color: var(--color-primary); }
+.bg-secondary { background-color: var(--color-secondary); }
+.bg-accent { background-color: var(--color-accent); }
+.bg-background { background-color: var(--color-background); }
+.border-primary { border-color: var(--color-primary); }
+.border-secondary { border-color: var(--color-secondary); }
+.border-accent { border-color: var(--color-accent); }
+
+/* 图标样式 */
+.icon {
+  display: inline-block;
+  width: 1.5rem;
+  height: 1.5rem;
+  stroke-width: 0;
+  stroke: currentColor;
+  fill: currentColor;
+}
+
+/* 隐藏SVG容器 */
+svg[style*="display: none"] {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+/* 固定导航栏样式 */
+header.fixed {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  background-color: rgba(255, 255, 255, 0.9);
+  transition: all 0.3s ease;
+}
+
+/* 滚动时导航栏样式 */
+header.fixed.scrolled {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* 移动端菜单样式 */
+#mobile-menu {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+#mobile-menu.active {
+  max-height: 200px;
+}
+
+/* 页面内容样式 */
+body {
+  padding-top: var(--header-height);
+}
