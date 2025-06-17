@@ -50,14 +50,47 @@
             <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></circle>
         </symbol>
     </svg>
+    <style>
+        /* 初始加载样式 */
+        .initial-loader {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 50vh;
+            opacity: 0;
+            animation: fadeIn 0.5s ease forwards 0.3s;
+        }
+        
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+        
+        .initial-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(248, 165, 194, 0.2);
+            border-radius: 50%;
+            border-top-color: #f8a5c2;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body class="bg-background min-h-screen">
     <div id="app" class="container mx-auto px-4 py-6">
         <!-- 页面内容将在这里动态加载 -->
-        <div id="content" class="mt-8"></div>
+        <div id="content" class="mt-8">
+            <!-- 初始加载指示器 -->
+            <div class="initial-loader">
+                <div class="initial-spinner"></div>
+            </div>
+        </div>
     </div>
     
     <!-- 主应用脚本 -->
-    <script src="../app.js" type="module"></script>
+    <script src="../../app.js" type="module"></script>
 </body>
 </html> 

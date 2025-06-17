@@ -1,5 +1,4 @@
-import { getCurrentUser, requireAuth, getAllUsers } from '../../utils/auth.js';
-import { formatDate } from '../../utils/helpers.js';
+import { getCurrentUser, requireAuth, getAllUsers, formatDate } from '../../utils/utils.js';
 import { createCard, createBadge, createTable } from '../../components/ui.js';
 
 // 仪表盘页面渲染函数
@@ -248,43 +247,40 @@ export default async function renderDashboardPage(container) {
     // 创建最近文档表格
     const recentDocumentsTable = createTable({
         columns: [
-            { title: '文档名称', dataIndex: 'name' },
-            { title: '创建者', dataIndex: 'creator' },
-            { title: '最后修改', dataIndex: 'lastModified' },
-            { title: '类型', dataIndex: 'type', render: (type) => {
-                let badgeType = 'default';
-                switch (type) {
-                    case '文档':
-                        badgeType = 'primary';
-                        break;
-                    case '表格':
-                        badgeType = 'success';
-                        break;
-                    case '幻灯片':
-                        badgeType = 'warning';
-                        break;
-                    case '合同':
-                        badgeType = 'info';
-                        break;
-                }
-                return createBadge({ text: type, type: badgeType }).outerHTML;
-            }},
-            { title: '操作', dataIndex: 'id', render: (id) => `
-                <div class="flex gap-2">
-                    <button class="text-blue-500 hover:text-blue-700">查看</button>
-                    <button class="text-gray-500 hover:text-gray-700">编辑</button>
-                </div>
-            `}
+            { header: '文档名称', key: 'name' },
+            { header: '创建者', key: 'creator' },
+            { header: '更新时间', key: 'updated_at' },
+            { header: '状态', key: 'status' }
         ],
         data: [
-            { id: 1, name: '项目计划书.docx', creator: '张三', lastModified: '今天 10:30', type: '文档' },
-            { id: 2, name: '财务报表.xlsx', creator: '李四', lastModified: '昨天 15:45', type: '表格' },
-            { id: 3, name: '产品提案.pptx', creator: '王五', lastModified: '2天前', type: '幻灯片' },
-            { id: 4, name: '服务协议.pdf', creator: '赵六', lastModified: '1周前', type: '合同' }
+            { 
+                name: '项目计划书.docx', 
+                creator: '张三', 
+                updated_at: '2023-06-10 14:30', 
+                status: createBadge({ text: '已完成', type: 'success' })
+            },
+            { 
+                name: '会议纪要.docx', 
+                creator: '李四', 
+                updated_at: '2023-06-09 16:45', 
+                status: createBadge({ text: '进行中', type: 'info' })
+            },
+            { 
+                name: '市场调研报告.xlsx', 
+                creator: '王五', 
+                updated_at: '2023-06-08 09:15', 
+                status: createBadge({ text: '审核中', type: 'warning' })
+            },
+            { 
+                name: '产品设计方案.pptx', 
+                creator: '赵六', 
+                updated_at: '2023-06-07 11:20', 
+                status: createBadge({ text: '已归档', type: 'secondary' })
+            }
         ],
-        hoverable: true,
         striped: true,
-        onRowClick: (row) => console.log('查看文档', row)
+        hoverable: true,
+        onRowClick: (row) => console.log('查看文档:', row)
     });
     
     // 添加最近文档表格到页面

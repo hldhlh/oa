@@ -22,11 +22,43 @@
     </script>
     <!-- 自定义样式 -->
     <link rel="stylesheet" href="assets/styles.css">
+    <style>
+        /* 初始加载样式 */
+        .initial-loader {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 50vh;
+            opacity: 0;
+            animation: fadeIn 0.5s ease forwards 0.3s;
+        }
+        
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+        
+        .initial-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(248, 165, 194, 0.2);
+            border-radius: 50%;
+            border-top-color: #f8a5c2;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
 </head>
-<body class="bg-background min-h-screen pt-16">
-    <!-- 头部将被插入到body开始位置 -->
+<body class="bg-background min-h-screen">
     <div id="app" class="container mx-auto px-4 py-4">
-        <div id="content" class="mt-2 relative z-10"></div>
+        <div id="content" class="mt-2 relative z-10">
+            <!-- 初始加载指示器 -->
+            <div class="initial-loader">
+                <div class="initial-spinner"></div>
+            </div>
+        </div>
     </div>
     <script src="app.js" type="module"></script>
 </body>
