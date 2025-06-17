@@ -5,6 +5,66 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // Supabase客户端实例
 let supabase = null;
 
+// 加载状态管理
+let loadingCount = 0;
+const loadingCallbacks = [];
+
+// 注册加载状态变化的回调
+export function onLoadingChange(callback) {
+    loadingCallbacks.push(callback);
+    return () => {
+        const index = loadingCallbacks.indexOf(callback);
+        if (index !== -1) {
+            loadingCallbacks.splice(index, 1);
+        }
+    };
+}
+
+// 显示全局加载状态
+export function showLoading() {
+    loadingCount++;
+    if (loadingCount === 1) {
+        // 通知所有监听器加载开始
+        loadingCallbacks.forEach(callback => callback(true));
+        
+        // 添加全局加载指示器
+        let loadingOverlay = document.getElementById('global-loading-overlay');
+        if (!loadingOverlay) {
+            loadingOverlay = document.createElement('div');
+            loadingOverlay.id = 'global-loading-overlay';
+            document.body.appendChild(loadingOverlay);
+        }
+        loadingOverlay.style.display = 'block';
+    }
+}
+
+// 隐藏全局加载状态
+export function hideLoading() {
+    loadingCount = Math.max(0, loadingCount - 1);
+    if (loadingCount === 0) {
+        // 通知所有监听器加载结束
+        loadingCallbacks.forEach(callback => callback(false));
+        
+        // 隐藏全局加载指示器
+        const loadingOverlay = document.getElementById('global-loading-overlay');
+        if (loadingOverlay) {
+            loadingOverlay.style.display = 'none';
+        }
+    }
+}
+
+// 创建一个带有加载状态的异步函数包装器
+export function withLoading(asyncFn) {
+    return async (...args) => {
+        showLoading();
+        try {
+            return await asyncFn(...args);
+        } finally {
+            hideLoading();
+        }
+    };
+}
+
 // 初始化Supabase客户端
 export async function loadSupabase() {
     if (!supabase) {
@@ -16,79 +76,97 @@ export async function loadSupabase() {
 
 // 数据操作函数
 export async function fetchData(table, options = {}) {
-    const supabase = await loadSupabase();
-    let query = supabase.from(table).select(options.select || '*');
-    
-    if (options.where) {
-        for (const [key, value] of Object.entries(options.where)) {
-            query = query.eq(key, value);
+    return withLoading(async () => {
+        const supabase = await loadSupabase();
+        let query = supabase.from(table).select(options.select || '*');
+        
+        if (options.where) {
+            for (const [key, value] of Object.entries(options.where)) {
+                query = query.eq(key, value);
+            }
         }
-    }
-    
-    if (options.order) {
-        query = query.order(options.order.column, { ascending: options.order.ascending });
-    }
-    
-    if (options.limit) {
-        query = query.limit(options.limit);
-    }
-    
-    return query;
+        
+        if (options.order) {
+            query = query.order(options.order.column, { ascending: options.order.ascending });
+        }
+        
+        if (options.limit) {
+            query = query.limit(options.limit);
+        }
+        
+        return query;
+    })();
 }
 
 // 创建数据
 export async function createData(table, data) {
-    const supabase = await loadSupabase();
-    return supabase.from(table).insert(data);
+    return withLoading(async () => {
+        const supabase = await loadSupabase();
+        return supabase.from(table).insert(data);
+    })();
 }
 
 // 更新数据
 export async function updateData(table, id, data) {
-    const supabase = await loadSupabase();
-    return supabase.from(table).update(data).eq('id', id);
+    return withLoading(async () => {
+        const supabase = await loadSupabase();
+        return supabase.from(table).update(data).eq('id', id);
+    })();
 }
 
 // 删除数据
 export async function deleteData(table, id) {
-    const supabase = await loadSupabase();
-    return supabase.from(table).delete().eq('id', id);
+    return withLoading(async () => {
+        const supabase = await loadSupabase();
+        return supabase.from(table).delete().eq('id', id);
+    })();
 }
 
 // 认证相关函数
 // 用户注册
 export async function register(email, password, userData = {}) {
-    const supabase = await loadSupabase();
-    return supabase.auth.signUp({
-        email,
-        password,
-        options: { data: userData }
-    });
+    return withLoading(async () => {
+        const supabase = await loadSupabase();
+        return supabase.auth.signUp({
+            email,
+            password,
+            options: { data: userData }
+        });
+    })();
 }
 
 // 用户登录
 export async function login(email, password) {
-    const supabase = await loadSupabase();
-    return supabase.auth.signInWithPassword({ email, password });
+    return withLoading(async () => {
+        const supabase = await loadSupabase();
+        return supabase.auth.signInWithPassword({ email, password });
+    })();
 }
 
 // 用户登出
 export async function logout() {
-    const supabase = await loadSupabase();
-    return supabase.auth.signOut();
+    return withLoading(async () => {
+        const supabase = await loadSupabase();
+        return supabase.auth.signOut();
+    })();
 }
 
 // 获取当前用户
 export async function getCurrentUser() {
-    const supabase = await loadSupabase();
-    const { data } = await supabase.auth.getUser();
-    return data.user;
+    return withLoading(async () => {
+        const supabase = await loadSupabase();
+        const { data } = await supabase.auth.getUser();
+        return data.user;
+    })();
 }
 
 // 获取当前会话
 export async function getCurrentSession() {
-    const supabase = await loadSupabase();
-    const { data } = await supabase.auth.getSession();
-    return data.session;
+    return withLoading(async () => {
+        const supabase = await loadSupabase();
+        const { data } = await supabase.auth.getSession();
+        return data.session;
+    })();
 }
 
 // 监听认证状态变化
@@ -99,18 +177,22 @@ export async function onAuthStateChange(callback) {
 
 // 更新用户资料
 export async function updateUserProfile(userData) {
-    const supabase = await loadSupabase();
-    return supabase.auth.updateUser({
-        data: userData
-    });
+    return withLoading(async () => {
+        const supabase = await loadSupabase();
+        return supabase.auth.updateUser({
+            data: userData
+        });
+    })();
 }
 
 // 重置密码
 export async function resetPassword(email) {
-    const supabase = await loadSupabase();
-    return supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-    });
+    return withLoading(async () => {
+        const supabase = await loadSupabase();
+        return supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: `${window.location.origin}/reset-password`,
+        });
+    })();
 }
 
 // 验证用户是否已登录
@@ -125,28 +207,30 @@ export async function requireAuth() {
 
 // 获取所有用户列表
 export async function getAllUsers() {
-    const supabase = await loadSupabase();
-    const { data, error } = await supabase.from('profiles').select('*');
-    
-    if (error) {
-        console.error('获取用户列表失败:', error);
-        return [];
-    }
-    
-    // 如果没有数据，至少返回当前用户
-    if (!data || data.length === 0) {
-        const currentUser = await getCurrentUser();
-        if (currentUser) {
-            return [{
-                id: currentUser.id,
-                username: currentUser.user_metadata?.username || '用户',
-                email: currentUser.email,
-                job_title: currentUser.user_metadata?.job_title || '团队成员'
-            }];
+    return withLoading(async () => {
+        const supabase = await loadSupabase();
+        const { data, error } = await supabase.from('profiles').select('*');
+        
+        if (error) {
+            console.error('获取用户列表失败:', error);
+            return [];
         }
-    }
-    
-    return data || [];
+        
+        // 如果没有数据，至少返回当前用户
+        if (!data || data.length === 0) {
+            const currentUser = await getCurrentUser();
+            if (currentUser) {
+                return [{
+                    id: currentUser.id,
+                    username: currentUser.user_metadata?.username || '用户',
+                    email: currentUser.email,
+                    job_title: currentUser.user_metadata?.job_title || '团队成员'
+                }];
+            }
+        }
+        
+        return data || [];
+    })();
 }
 
 // 辅助函数

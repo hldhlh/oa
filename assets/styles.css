@@ -149,3 +149,42 @@ header.fixed {
   border-top-color: #f8a5c2;
   animation: spin 1s linear infinite;
 }
+
+/* 全局加载状态样式 */
+#global-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(to right, transparent, var(--color-primary), transparent);
+  z-index: 9999;
+  display: none;
+  opacity: 0.8;
+  animation: loading-bar 1.5s infinite ease-in-out;
+}
+
+@keyframes loading-bar {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* 全局加载指示器 */
+.global-spinner {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(var(--color-primary-rgb, 248, 165, 194), 0.2);
+  border-radius: 50%;
+  border-top-color: var(--color-primary);
+  animation: spin 1s linear infinite;
+  z-index: 9999;
+  display: none;
+}

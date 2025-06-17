@@ -1,5 +1,5 @@
 // 导入工具函数
-import { loadSupabase, getCurrentUser, onAuthStateChange, logout, showNotification } from '/utils/utils.js';
+import { loadSupabase, getCurrentUser, onAuthStateChange, logout, showNotification, showLoading, hideLoading } from '/utils/utils.js';
 
 // 基础URL配置（用于构建绝对路径）
 const BASE_URL = window.location.origin;
@@ -219,6 +219,9 @@ const renderPage = async () => {
     showLoader(contentElement);
     
     try {
+        // 显示全局加载状态
+        showLoading();
+        
         // 动态导入页面模块
         const pageModule = await import(routePath);
         
@@ -249,6 +252,9 @@ const renderPage = async () => {
     } catch (error) {
         console.error('页面加载失败:', error);
         showError(contentElement, '页面加载失败');
+    } finally {
+        // 隐藏全局加载状态
+        hideLoading();
     }
 };
 
@@ -266,35 +272,43 @@ window.addEventListener('popstate', renderPage);
 
 // 初始化应用
 const initApp = async () => {
-    // 初始化Supabase客户端
-    await loadSupabase();
+    // 显示加载状态
+    showLoading();
     
-    // 渲染头部和页脚
-    await renderHeader();
-    renderFooter();
-    
-    // 监听认证状态变化
-    onAuthStateChange(async (event, session) => {
-        // 根据认证状态更新UI
-        await renderHeader();
+    try {
+        // 初始化Supabase客户端
+        await loadSupabase();
         
-        // 如果用户登出且当前在需要认证的页面，则重定向到首页
-        if (event === 'SIGNED_OUT' && getCurrentPath() === '/dashboard') {
-            navigateTo('/');
-        }
-    });
-    
-    // 拦截所有链接点击
-    document.addEventListener('click', (e) => {
-        const link = e.target.closest('a');
-        if (link && link.href.startsWith(window.location.origin)) {
-            e.preventDefault();
-            navigateTo(link.pathname);
-        }
-    });
-    
-    // 渲染当前页面
-    renderPage();
+        // 渲染头部和页脚
+        await renderHeader();
+        renderFooter();
+        
+        // 监听认证状态变化
+        onAuthStateChange(async (event, session) => {
+            // 根据认证状态更新UI
+            await renderHeader();
+            
+            // 如果用户登出且当前在需要认证的页面，则重定向到首页
+            if (event === 'SIGNED_OUT' && getCurrentPath() === '/dashboard') {
+                navigateTo('/');
+            }
+        });
+        
+        // 拦截所有链接点击
+        document.addEventListener('click', (e) => {
+            const link = e.target.closest('a');
+            if (link && link.href.startsWith(window.location.origin)) {
+                e.preventDefault();
+                navigateTo(link.pathname);
+            }
+        });
+        
+        // 渲染当前页面
+        await renderPage();
+    } finally {
+        // 隐藏加载状态
+        hideLoading();
+    }
 };
 
 // 启动应用
