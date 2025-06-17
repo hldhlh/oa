@@ -1,8 +1,6 @@
-import { login } from '../../utils/auth.js';
-import { validateForm, showNotification } from '../../utils/helpers.js';
-import { createButton, createInput, createAlert } from '../../components/ui.js';
-import { translateErrorMessage } from '../../utils/errorMessages.js';
-import { navigateTo } from '../../app.js';
+import { login, validateForm, showNotification, translateErrorMessage } from '/utils/utils.js';
+import { createButton, createInput, createAlert } from '/components/ui.js';
+import { navigateTo } from '/app.js';
 
 // 登录页面渲染函数
 export default function renderLoginPage(container) {

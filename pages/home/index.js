@@ -1,4 +1,4 @@
-import { createCard } from '../../components/ui.js';
+import { createCard } from '/components/ui.js';
 
 // 首页渲染函数
 export default function renderHomePage(container) {

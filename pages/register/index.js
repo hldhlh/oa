@@ -1,8 +1,7 @@
-import { register } from '../../utils/auth.js';
-import { validateForm, showNotification } from '../../utils/helpers.js';
-import { createButton, createInput, createAlert } from '../../components/ui.js';
-import { translateErrorMessage } from '../../utils/errorMessages.js';
-import { navigateTo } from '../../app.js';
+import { register } from '/utils/utils.js';
+import { validateForm, showNotification, translateErrorMessage } from '/utils/utils.js';
+import { createButton, createInput, createAlert } from '/components/ui.js';
+import { navigateTo } from '/app.js';
 
 // 注册页面渲染函数
 export default function renderRegisterPage(container) {

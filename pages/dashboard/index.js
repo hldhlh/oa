@@ -1,5 +1,5 @@
-import { getCurrentUser, requireAuth, getAllUsers, formatDate } from '../../utils/utils.js';
-import { createCard, createBadge, createTable } from '../../components/ui.js';
+import { getCurrentUser, requireAuth, getAllUsers, formatDate } from '/utils/utils.js';
+import { createCard, createBadge, createTable } from '/components/ui.js';
 
 // 仪表盘页面渲染函数
 export default async function renderDashboardPage(container) {

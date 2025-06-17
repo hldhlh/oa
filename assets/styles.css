@@ -1,3 +1,25 @@
+/* Tailwind配置 - 将在HTML中引用 */
+/* tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        primary: 'var(--color-primary)',
+        secondary: 'var(--color-secondary)',
+        accent: 'var(--color-accent)',
+        background: 'var(--color-background)',
+      },
+      borderRadius: {
+        'xl': '1rem',
+        '2xl': '1.5rem',
+      },
+      boxShadow: {
+        'neumorphism': '10px 10px 20px #d9d9d9, -10px -10px 20px #ffffff',
+        'neumorphism-inset': 'inset 5px 5px 10px #d9d9d9, inset -5px -5px 10px #ffffff',
+      }
+    }
+  }
+} */
+
 /* 基础变量 */
 :root {
   --color-primary: #f8a5c2;
@@ -103,4 +125,27 @@ header.fixed {
 
 #mobile-menu.active {
   max-height: 200px;
+}
+
+/* 初始加载样式 */
+.initial-loader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 50vh;
+  opacity: 0;
+  animation: fadeIn 0.5s ease forwards 0.3s;
+}
+
+@keyframes fadeIn {
+  to { opacity: 1; }
+}
+
+.initial-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(248, 165, 194, 0.2);
+  border-radius: 50%;
+  border-top-color: #f8a5c2;
+  animation: spin 1s linear infinite;
 }

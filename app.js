@@ -1,26 +1,16 @@
 // 导入工具函数
-import { loadSupabase, getCurrentUser, onAuthStateChange, logout, showNotification } from './utils/utils.js';
+import { loadSupabase, getCurrentUser, onAuthStateChange, logout, showNotification } from '/utils/utils.js';
 
-// 加载SVG图标
-const loadIcons = async () => {
-    try {
-        const response = await fetch('./assets/icons.svg');
-        const svgText = await response.text();
-        const parser = new DOMParser();
-        const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
-        document.body.appendChild(svgDoc.documentElement);
-    } catch (error) {
-        console.error('加载图标失败:', error);
-    }
-};
+// 基础URL配置（用于构建绝对路径）
+const BASE_URL = window.location.origin;
 
 // 页面路由配置
 const routes = {
-    '/': './pages/home/index.js',
-    '/home': './pages/home/index.js',
-    '/login': './pages/login/index.js',
-    '/register': './pages/register/index.js',
-    '/dashboard': './pages/dashboard/index.js',
+    '/': `${BASE_URL}/pages/home/index.js`,
+    '/home': `${BASE_URL}/pages/home/index.js`,
+    '/login': `${BASE_URL}/pages/login/index.js`,
+    '/register': `${BASE_URL}/pages/register/index.js`,
+    '/dashboard': `${BASE_URL}/pages/dashboard/index.js`,
 };
 
 // 获取当前路径
@@ -221,14 +211,14 @@ const renderPage = async () => {
     const path = getCurrentPath();
     const routePath = routes[path] || routes['/'];
     
+    // 获取内容元素
+    const contentElement = document.getElementById('content');
+    if (!contentElement) return;
+    
+    // 显示加载指示器
+    showLoader(contentElement);
+    
     try {
-        // 获取内容元素
-        const contentElement = document.getElementById('content');
-        if (!contentElement) return;
-        
-        // 显示加载指示器
-        showLoader(contentElement);
-        
         // 动态导入页面模块
         const pageModule = await import(routePath);
         
@@ -258,10 +248,7 @@ const renderPage = async () => {
         }
     } catch (error) {
         console.error('页面加载失败:', error);
-        const contentElement = document.getElementById('content');
-        if (contentElement) {
-            showError(contentElement);
-        }
+        showError(contentElement, '页面加载失败');
     }
 };
 
@@ -279,9 +266,6 @@ window.addEventListener('popstate', renderPage);
 
 // 初始化应用
 const initApp = async () => {
-    // 加载SVG图标
-    await loadIcons();
-    
     // 初始化Supabase客户端
     await loadSupabase();
     
