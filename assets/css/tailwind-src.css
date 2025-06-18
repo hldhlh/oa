@@ -1,24 +1,6 @@
-/* Tailwind配置 - 将在HTML中引用 */
-/* tailwind.config = {
-  theme: {
-    extend: {
-      colors: {
-        primary: 'var(--color-primary)',
-        secondary: 'var(--color-secondary)',
-        accent: 'var(--color-accent)',
-        background: 'var(--color-background)',
-      },
-      borderRadius: {
-        'xl': '1rem',
-        '2xl': '1.5rem',
-      },
-      boxShadow: {
-        'neumorphism': '10px 10px 20px #d9d9d9, -10px -10px 20px #ffffff',
-        'neumorphism-inset': 'inset 5px 5px 10px #d9d9d9, inset -5px -5px 10px #ffffff',
-      }
-    }
-  }
-} */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* 基础变量 */
 :root {
@@ -78,7 +60,7 @@ body {
 .loader-spinner {
   width: 48px;
   height: 48px;
-  border: 3px solid rgba(var(--color-primary-rgb, 248, 165, 194), 0.2);
+  border: 3px solid rgba(248, 165, 194, 0.2);
   border-radius: 50%;
   border-top-color: var(--color-primary);
   animation: spin 1s linear infinite;
@@ -195,4 +177,4 @@ header.fixed {
     flex: 1;
     min-height: 300px;
   }
-}
+} 

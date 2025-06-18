@@ -32,21 +32,9 @@ export function showLoading() {
         if (!loadingOverlay) {
             loadingOverlay = document.createElement('div');
             loadingOverlay.id = 'global-loading-overlay';
-            
-            // 添加一个加载指示器
-            const loadingSpinner = document.createElement('div');
-            loadingSpinner.className = 'global-spinner';
-            document.body.appendChild(loadingSpinner);
-            
             document.body.appendChild(loadingOverlay);
         }
         loadingOverlay.style.display = 'block';
-        
-        // 显示全局spinner
-        const spinner = document.querySelector('.global-spinner');
-        if (spinner) {
-            spinner.style.display = 'block';
-        }
     }
 }
 
@@ -61,12 +49,6 @@ export function hideLoading() {
         const loadingOverlay = document.getElementById('global-loading-overlay');
         if (loadingOverlay) {
             loadingOverlay.style.display = 'none';
-        }
-        
-        // 隐藏全局spinner
-        const spinner = document.querySelector('.global-spinner');
-        if (spinner) {
-            spinner.style.display = 'none';
         }
     }
 }
@@ -226,17 +208,10 @@ export async function requireAuth() {
 // 获取所有用户列表
 export async function getAllUsers() {
     return withLoading(async () => {
-        const supabase = await loadSupabase();
-        const { data, error } = await supabase.from('profiles').select('*');
-        
-        if (error) {
-            console.error('获取用户列表失败:', error);
-            return [];
-        }
-        
-        // 如果没有数据，至少返回当前用户
-        if (!data || data.length === 0) {
+        try {
             const currentUser = await getCurrentUser();
+            
+            // 直接返回当前用户信息，不查询profiles表
             if (currentUser) {
                 return [{
                     id: currentUser.id,
@@ -245,9 +220,12 @@ export async function getAllUsers() {
                     job_title: currentUser.user_metadata?.job_title || '团队成员'
                 }];
             }
+            
+            return [];
+        } catch (error) {
+            console.error('获取用户列表失败:', error);
+            return [];
         }
-        
-        return data || [];
     })();
 }
 

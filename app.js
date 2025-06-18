@@ -288,7 +288,18 @@ window.addEventListener('popstate', renderPage);
 // 加载图标
 async function loadIcons() {
     try {
-        const response = await fetch('./assets/icons.svg');
+        // 修复路径问题，使用相对于当前页面的路径
+        const currentPath = window.location.pathname;
+        let iconPath = './assets/icons.svg';
+        
+        // 如果在子目录中，需要调整路径
+        if (currentPath.includes('/') && currentPath !== '/') {
+            const pathSegments = currentPath.split('/').filter(Boolean);
+            // 对每个路径段添加一个返回上级目录的../
+            iconPath = '../'.repeat(pathSegments.length) + 'assets/icons.svg';
+        }
+        
+        const response = await fetch(iconPath);
         if (!response.ok) {
             throw new Error('无法加载图标');
         }

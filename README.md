@@ -18,6 +18,11 @@
 ```
 oa/
 ├── assets/           # 静态资源
+│   ├── css/          # CSS文件
+│   │   ├── tailwind.css     # 编译后的Tailwind CSS
+│   │   └── tailwind-src.css # Tailwind源文件
+│   ├── styles.css    # 自定义样式
+│   └── icons.svg     # SVG图标
 ├── components/       # 通用组件
 │   ├── header.js     # 页头组件
 │   ├── footer.js     # 页脚组件
@@ -39,7 +44,10 @@ oa/
 │   ├── api.js        # API请求
 │   ├── auth.js       # 认证相关
 │   └── helpers.js    # 辅助函数
+├── migrations/       # 数据库迁移脚本
 ├── app.js            # 全局JS
+├── tailwind.config.js # Tailwind配置
+├── postcss.config.js # PostCSS配置
 └── index.html        # 主入口HTML
 ```
 
@@ -56,6 +64,7 @@ oa/
 - **JavaScript**：原生JavaScript (ES6+)
 - **Tailwind CSS**：样式框架
 - **Supabase**：后端服务 (认证、数据库)
+- **PostCSS**：CSS处理
 
 ## 开始使用
 
@@ -86,6 +95,44 @@ http://localhost:8000
 const SUPABASE_URL = 'YOUR_SUPABASE_URL';
 const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 ```
+
+## 生产环境部署
+
+本项目已经配置为使用本地Tailwind CSS文件，而不是CDN版本，以便在生产环境中使用。
+
+### 安装依赖
+
+```bash
+npm install
+```
+
+### 构建Tailwind CSS
+
+```bash
+# 开发环境（监视文件变化）
+npm run watch-css
+
+# 生产环境（最小化文件）
+npm run build
+```
+
+### 启动开发服务器
+
+```bash
+npm run dev
+```
+
+## 数据库迁移
+
+请参考 `migrations/README.md` 文件了解如何应用数据库迁移脚本。
+
+## 浏览器兼容性
+
+- Chrome (最新版本)
+- Firefox (最新版本)
+- Safari (最新版本)
+- Edge (最新版本)
+- 移动浏览器 (iOS Safari, Android Chrome)
 
 ## 贡献
 
