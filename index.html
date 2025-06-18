@@ -3,82 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OA系统</title>
-    <!-- 使用本地Tailwind CSS -->
-    <link rel="stylesheet" href="./assets/css/tailwind.css">
-    <!-- 自定义样式 -->
-    <link rel="stylesheet" href="./assets/styles.css">
-    <!-- 添加默认加载指示器样式 -->
-    <style>
-        .default-loader {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            min-height: 50vh;
-            margin-top: 20px;
-        }
-        
-        .default-spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(248, 165, 194, 0.2);
-            border-radius: 50%;
-            border-top-color: #f8a5c2;
-            animation: spin 1s linear infinite;
-        }
-        
-        .default-loader-text {
-            margin-top: 16px;
-            color: #666;
-            font-size: 16px;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        /* 确保在移动设备上正确显示 */
-        @media (max-width: 768px) {
-            body {
-                min-height: 100vh;
-            }
-            
-            #app {
-                min-height: 100vh;
-            }
-        }
-        
-        /* 防止闪烁 */
-        body {
-            opacity: 1;
-            transition: opacity 0.3s;
-        }
-        
-        body.loading {
-            opacity: 0;
-        }
-    </style>
+    <title>OA 系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        // 添加加载状态类
-        document.body.classList.add('loading');
-        window.addEventListener('DOMContentLoaded', function() {
-            setTimeout(function() {
-                document.body.classList.remove('loading');
-            }, 300);
-        });
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        // 可以在这里扩展颜色
+                    }
+                }
+            }
+        }
     </script>
 </head>
-<body class="bg-background min-h-screen">
-    <div id="app" class="container mx-auto px-4 py-4">
-        <div id="content" class="mt-2 relative z-10">
-            <!-- 默认加载指示器，确保在JS加载前有内容显示 -->
-            <div class="default-loader">
-                <div class="default-spinner"></div>
-                <div class="default-loader-text">应用加载中，请稍候...</div>
-            </div>
-        </div>
-    </div>
+<body class="bg-white text-black">
+    <header id="header-placeholder"></header>
+    
+    <main id="main-content" class="p-8">
+        <!-- 页面内容将在这里加载 -->
+    </main>
+    
+    <footer id="footer-placeholder"></footer>
+
     <script src="./app.js" type="module"></script>
 </body>
 </html> 
