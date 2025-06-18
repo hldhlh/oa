@@ -32,9 +32,21 @@ export function showLoading() {
         if (!loadingOverlay) {
             loadingOverlay = document.createElement('div');
             loadingOverlay.id = 'global-loading-overlay';
+            
+            // 添加一个加载指示器
+            const loadingSpinner = document.createElement('div');
+            loadingSpinner.className = 'global-spinner';
+            document.body.appendChild(loadingSpinner);
+            
             document.body.appendChild(loadingOverlay);
         }
         loadingOverlay.style.display = 'block';
+        
+        // 显示全局spinner
+        const spinner = document.querySelector('.global-spinner');
+        if (spinner) {
+            spinner.style.display = 'block';
+        }
     }
 }
 
@@ -49,6 +61,12 @@ export function hideLoading() {
         const loadingOverlay = document.getElementById('global-loading-overlay');
         if (loadingOverlay) {
             loadingOverlay.style.display = 'none';
+        }
+        
+        // 隐藏全局spinner
+        const spinner = document.querySelector('.global-spinner');
+        if (spinner) {
+            spinner.style.display = 'none';
         }
     }
 }

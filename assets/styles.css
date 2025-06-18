@@ -181,10 +181,40 @@ header.fixed {
   transform: translate(-50%, -50%);
   width: 40px;
   height: 40px;
-  border: 3px solid rgba(var(--color-primary-rgb, 248, 165, 194), 0.2);
+  border: 3px solid rgba(248, 165, 194, 0.2);
   border-radius: 50%;
-  border-top-color: var(--color-primary);
+  border-top-color: var(--color-primary, #f8a5c2);
   animation: spin 1s linear infinite;
   z-index: 9999;
   display: none;
+}
+
+/* 确保移动端兼容性 */
+@media (max-width: 768px) {
+  .global-spinner {
+    width: 30px;
+    height: 30px;
+    border-width: 2px;
+  }
+  
+  #global-loading-overlay {
+    height: 3px;
+  }
+  
+  body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  #app {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  #content {
+    flex: 1;
+    min-height: 300px;
+  }
 }

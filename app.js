@@ -1,16 +1,16 @@
 // 导入工具函数
-import { loadSupabase, getCurrentUser, onAuthStateChange, logout, showNotification, showLoading, hideLoading } from '/utils/utils.js';
+import { loadSupabase, getCurrentUser, onAuthStateChange, logout, showNotification, showLoading, hideLoading } from './utils/utils.js';
 
 // 基础URL配置（用于构建绝对路径）
 const BASE_URL = window.location.origin;
 
 // 页面路由配置
 const routes = {
-    '/': `${BASE_URL}/pages/home/index.js`,
-    '/home': `${BASE_URL}/pages/home/index.js`,
-    '/login': `${BASE_URL}/pages/login/index.js`,
-    '/register': `${BASE_URL}/pages/register/index.js`,
-    '/dashboard': `${BASE_URL}/pages/dashboard/index.js`,
+    '/': `./pages/home/index.js`,
+    '/home': `./pages/home/index.js`,
+    '/login': `./pages/login/index.js`,
+    '/register': `./pages/register/index.js`,
+    '/dashboard': `./pages/dashboard/index.js`,
 };
 
 // 获取当前路径
@@ -21,7 +21,14 @@ const getCurrentPath = () => {
         const pagePath = path.split('/pages/')[1].split('/index.html')[0];
         return `/${pagePath}`;
     }
-    return path === '/' ? '/' : path.endsWith('/') ? path.slice(0, -1) : path;
+    
+    // 处理根路径特殊情况
+    if (path === '/' || path === '/index.html') {
+        return '/';
+    }
+    
+    // 处理其他路径
+    return path.endsWith('/') ? path.slice(0, -1) : path;
 };
 
 // 渲染页面头部
@@ -223,7 +230,10 @@ const renderPage = async () => {
         showLoading();
         
         // 动态导入页面模块
-        const pageModule = await import(routePath);
+        const pageModule = await import(routePath).catch(error => {
+            console.error('页面模块加载失败:', error);
+            throw new Error(`无法加载页面模块: ${routePath}`);
+        });
         
         // 检查是否成功导入
         if (pageModule && pageModule.default) {
@@ -236,22 +246,27 @@ const renderPage = async () => {
             contentElement.appendChild(pageContainer);
             
             // 渲染页面内容到新容器
-            await pageModule.default(pageContainer);
-            
-            // 应用过渡效果
-            contentElement.classList.remove('content-loading');
-            contentElement.classList.add('content-ready');
-            
-            // 触发重绘以应用过渡效果
-            setTimeout(() => {
-                pageContainer.classList.add('page-enter-active');
-            }, 10);
+            try {
+                await pageModule.default(pageContainer);
+                
+                // 应用过渡效果
+                contentElement.classList.remove('content-loading');
+                contentElement.classList.add('content-ready');
+                
+                // 触发重绘以应用过渡效果
+                setTimeout(() => {
+                    pageContainer.classList.add('page-enter-active');
+                }, 10);
+            } catch (renderError) {
+                console.error('页面渲染失败:', renderError);
+                showError(contentElement, '页面渲染失败，请刷新重试');
+            }
         } else {
             showError(contentElement, '无法加载页面模块');
         }
     } catch (error) {
         console.error('页面加载失败:', error);
-        showError(contentElement, '页面加载失败');
+        showError(contentElement, '页面加载失败，请检查网络连接');
     } finally {
         // 隐藏全局加载状态
         hideLoading();
@@ -270,12 +285,34 @@ window.navigateTo = navigateTo;
 // 监听浏览器前进/后退
 window.addEventListener('popstate', renderPage);
 
+// 加载图标
+async function loadIcons() {
+    try {
+        const response = await fetch('./assets/icons.svg');
+        if (!response.ok) {
+            throw new Error('无法加载图标');
+        }
+        const svgText = await response.text();
+        
+        // 创建SVG容器并添加到body
+        const iconContainer = document.createElement('div');
+        iconContainer.style.display = 'none';
+        iconContainer.innerHTML = svgText;
+        document.body.appendChild(iconContainer);
+    } catch (error) {
+        console.error('加载图标失败:', error);
+    }
+}
+
 // 初始化应用
 const initApp = async () => {
     // 显示加载状态
     showLoading();
     
     try {
+        // 加载图标
+        await loadIcons();
+        
         // 初始化Supabase客户端
         await loadSupabase();
         
