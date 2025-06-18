@@ -39,7 +39,8 @@ export function renderEmployeeLists(dateString) {
         employeeDiv.dataset.employeeId = employee.id;
         
         employeeDiv.addEventListener('dragstart', (event) => {
-            event.dataTransfer.setData('text/plain', JSON.stringify(employee));
+            // 使用自定义的MIME类型来清晰地标识数据类型
+            event.dataTransfer.setData('application/json+employee', JSON.stringify(employee));
             event.dataTransfer.effectAllowed = 'copy';
         });
         

@@ -22,10 +22,7 @@ const defaultState = {
     },
     // 应用的其他设置
     settings: {
-        peakHours: [
-            { start: '12:00', end: '14:00' },
-            { start: '18:00', end: '21:00' }
-        ]
+        peakHours: []
     }
 };
 
@@ -124,6 +121,28 @@ export function deleteShift(dateString, shiftId) {
         state.schedule[dateString] = state.schedule[dateString].filter(s => s.id !== shiftId);
         saveState();
     }
+}
+
+/**
+ * Toggles a specific hour in the peak hours setting.
+ * If the hour is already part of a period, it might be removed or the period adjusted.
+ * This is a simplified implementation; more complex logic could handle merging periods.
+ * @param {number} hour - The hour to toggle (e.g., 12 for 12:00-13:00).
+ */
+export function togglePeakHour(hour) {
+    const period = { start: `${hour}:00`, end: `${hour + 1}:00` };
+    const existingIndex = state.settings.peakHours.findIndex(p => p.start === period.start && p.end === period.end);
+
+    if (existingIndex > -1) {
+        // If it exists, remove it
+        state.settings.peakHours.splice(existingIndex, 1);
+    } else {
+        // If it doesn't exist, add it
+        state.settings.peakHours.push(period);
+        // Simple sort to keep them in order
+        state.settings.peakHours.sort((a, b) => parseInt(a.start, 10) - parseInt(b.start, 10));
+    }
+    saveState();
 }
 
 // 初始化时自动加载状态
