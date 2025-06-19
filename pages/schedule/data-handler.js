@@ -86,6 +86,73 @@ export function getScheduleForDate(dateString) {
 }
 
 /**
+ * 添加一个新员工
+ * @param {object} employeeData - { name, position, type }
+ * @returns {object} The newly created employee object
+ */
+export function addEmployee(employeeData) {
+    const newEmployee = {
+        id: Date.now(), // 使用时间戳作为简单唯一ID
+        ...employeeData,
+    };
+    state.employees.push(newEmployee);
+    saveState();
+    return newEmployee;
+}
+
+/**
+ * 根据ID删除一个员工
+ * 同时也会删除该员工在所有日期的排班记录
+ * @param {number} employeeId
+ */
+export function deleteEmployee(employeeId) {
+    // 1. 从员工列表中删除员工
+    state.employees = state.employees.filter(emp => emp.id !== employeeId);
+
+    // 2. 遍历整个排班表，删除该员工的所有班次
+    for (const date in state.schedule) {
+        state.schedule[date] = state.schedule[date].filter(shift => shift.employeeId !== employeeId);
+    }
+    
+    saveState();
+}
+
+/**
+ * 重新排列员工的顺序
+ * @param {number} draggedEmployeeId - 被拖动的员工ID
+ * @param {number | null} targetEmployeeId - 拖放目标位置的员工ID, 如果为null则移动到末尾
+ */
+export function reorderEmployees(draggedEmployeeId, targetEmployeeId) {
+    const employees = state.employees;
+    const draggedIndex = employees.findIndex(e => e.id === draggedEmployeeId);
+
+    if (draggedIndex === -1) {
+        console.error("Dragged employee not found");
+        return;
+    }
+
+    // 从数组中移除被拖动的员工
+    const [draggedEmployee] = employees.splice(draggedIndex, 1);
+
+    // 如果目标ID为null，则移动到数组末尾
+    if (targetEmployeeId === null) {
+        employees.push(draggedEmployee);
+    } else {
+        // 否则，找到目标员工的索引并在其之前插入
+        const targetIndex = employees.findIndex(e => e.id === targetEmployeeId);
+        if (targetIndex !== -1) {
+            employees.splice(targetIndex, 0, draggedEmployee);
+        } else {
+            // 如果目标ID无效，则作为安全措施，将其放回末尾
+            employees.push(draggedEmployee);
+            console.error(`Target employee with id ${targetEmployeeId} not found. Appending to the end.`);
+        }
+    }
+
+    saveState();
+}
+
+/**
  * 更新或添加一个班次
  * @param {string} dateString - "YYYY-MM-DD"
  * @param {object} shiftData - The shift object to add or update

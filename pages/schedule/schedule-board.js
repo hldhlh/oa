@@ -263,7 +263,8 @@ function renderSwimlanes(dateString, employees, schedule) {
         // --- Add Context Menu Listener for TRACK ---
         trackEl.addEventListener('contextmenu', (e) => {
             e.preventDefault();
-            e.stopPropagation(); // Prevent bubbling to document
+            e.stopPropagation(); // 阻止事件冒泡到document
+            
             const rect = trackEl.getBoundingClientRect();
             const clickX = e.clientX - rect.left;
             const timePercentage = (clickX / rect.width) * 100;
@@ -276,8 +277,7 @@ function renderSwimlanes(dateString, employees, schedule) {
                 shiftId: null,
                 context: 'track'
             };
-
-            showContextMenu(e.clientX, e.clientY, 'track');
+            showContextMenu(e.pageX, e.pageY, 'track');
         });
 
         // Filter shifts for this employee
@@ -311,14 +311,9 @@ function renderSwimlanes(dateString, employees, schedule) {
             // --- Add Context Menu Listener for SHIFT ---
             shiftEl.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
-                e.stopPropagation(); // Prevent bubbling to track
-                contextMenuState = {
-                    visible: true,
-                    shiftId: shift.id,
-                    dateString: dateString,
-                    context: 'shift'
-                };
-                showContextMenu(e.clientX, e.clientY, 'shift');
+                e.stopPropagation(); // Stop propagation to prevent track context menu
+                contextMenuState = { visible: true, employeeId: employee.id, dateString, shiftId: shift.id, context: 'shift' };
+                showContextMenu(e.pageX, e.pageY, 'shift');
             });
 
             // --- Add Resize Handles for RESIZING ---
