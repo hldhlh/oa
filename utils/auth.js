@@ -3,8 +3,8 @@ import { loadSupabase } from './api.js';
 export async function register(email, password, userData = {}) {
     const supabase = await loadSupabase();
     // 密码规则前端校验
-    if (password.length < 8 || !/\d/.test(password) || !/[a-zA-Z]/.test(password)) {
-        return { error: { message: "密码最少8个字符，且必须包含字母和数字。" } };
+    if (password.length < 6) {
+        return { error: { message: "密码最少需要6个字符。" } };
     }
     return supabase.auth.signUp({
         email,
