@@ -61,7 +61,8 @@ function createShiftElement(shift, employee, dateString, trackEl) {
     const width = right - left;
 
     const shiftEl = document.createElement('div');
-    shiftEl.className = 'absolute h-10 top-3 rounded-lg flex items-center justify-center text-xs font-medium shadow-sm cursor-grab z-10';
+    // 美化班次样式：移除字重，使其更简洁
+    shiftEl.className = 'absolute h-auto top-3 bottom-3 rounded flex flex-col justify-center p-2 text-xs shadow-md border cursor-grab z-10';
     shiftEl.dataset.shiftId = shift.id;
     shiftEl.dataset.dateString = dateString; // 存储日期信息，用于跨日期拖拽
 
@@ -71,19 +72,24 @@ function createShiftElement(shift, employee, dateString, trackEl) {
 
     // --- 添加事件监听器 ---
     shiftEl.addEventListener('mousedown', (e) => {
-        const handle = e.target.closest('[data-handle]');
-        if (handle) {
-            // 调整大小
+        // 确保点击的不是手柄才触发移动
+        if (e.target.closest('[data-handle]')) {
+             // 调整大小
             handleResizeStart(e, shift, trackEl, shiftEl, dateString);
-        } else {
-            // 移动
-            handleMoveStart(e, shift, trackEl, shiftEl, dateString);
+            return;
         }
+        // 移动
+        handleMoveStart(e, shift, trackEl, shiftEl, dateString);
     });
     
     // 添加拖拽事件监听器，支持跨视图拖拽
     shiftEl.draggable = true;
     shiftEl.addEventListener('dragstart', (e) => {
+        // 确保不是从手柄开始拖动
+        if (e.target.closest('[data-handle]')) {
+            e.preventDefault();
+            return;
+        }
         const rect = shiftEl.getBoundingClientRect();
         const initialOffsetX = e.clientX - rect.left;
         
@@ -97,7 +103,7 @@ function createShiftElement(shift, employee, dateString, trackEl) {
         e.dataTransfer.effectAllowed = 'move';
         
         // 添加半透明效果
-        shiftEl.classList.add('opacity-50');
+        setTimeout(() => shiftEl.classList.add('opacity-50'), 0);
     });
     
     shiftEl.addEventListener('dragend', () => {
@@ -121,34 +127,41 @@ function createShiftElement(shift, employee, dateString, trackEl) {
 
     // --- 添加调整大小的手柄 ---
     const leftHandle = document.createElement('div');
-    leftHandle.className = 'absolute top-0 left-0 h-full w-4 cursor-col-resize z-20';
+    leftHandle.className = 'absolute top-0 left-0 h-full w-4 cursor-col-resize z-20 rounded-l';
     leftHandle.dataset.handle = 'left';
 
     const rightHandle = document.createElement('div');
-    rightHandle.className = 'absolute top-0 right-0 h-full w-4 cursor-col-resize z-20';
+    rightHandle.className = 'absolute top-0 right-0 h-full w-4 cursor-col-resize z-20 rounded-r';
     rightHandle.dataset.handle = 'right';
 
     shiftEl.appendChild(leftHandle);
     shiftEl.appendChild(rightHandle);
 
     // --- 设置颜色和文本 ---
-    let colors, textContent;
+    let colors;
+    const duration = calculateDuration(shift.start, shift.end);
+    const durationText = `(${duration.toFixed(1)}h)`;
+    let typeText = '';
+
     if (shift.type === 'work') {
         colors = POSITION_COLORS[employee.position] || POSITION_COLORS.default;
-        const duration = calculateDuration(shift.start, shift.end);
-        textContent = `工作 (${duration.toFixed(1)}h)`;
+        typeText = '工作';
     } else { // break
         colors = BREAK_COLORS;
-        const duration = calculateDuration(shift.start, shift.end);
-        textContent = `休息 (${duration.toFixed(1)}h)`;
+        typeText = '休息';
     }
+
+    const fullText = `${typeText} ${durationText}`;
     
-    shiftEl.classList.add(colors.bg, colors.text);
+    shiftEl.classList.add(colors.bg, colors.text, `border-${colors.bg.split('-')[1]}-600`);
     
-    // --- 添加文本 ---
-    const textEl = document.createElement('span');
-    textEl.textContent = textContent;
-    shiftEl.appendChild(textEl);
+    // 为单行文本添加垂直居中和字体样式
+    shiftEl.classList.add('items-center', 'text-sm');
+
+    // 使用 innerHTML 创建最终的单行结构
+    shiftEl.innerHTML += `
+        <div class="truncate pointer-events-none">${fullText}</div>
+    `;
 
     return shiftEl;
 }
@@ -726,13 +739,16 @@ export function renderWeeklyBoard(date) {
     const swimlanesContainer = document.createElement('div');
     swimlanesContainer.className = 'flex-1 overflow-y-auto';
 
-    for (const employee of employees) {
+    employees.forEach((employee, index) => {
         const employeeRow = document.createElement('div');
-        employeeRow.className = 'flex items-stretch h-32 border-b border-gray-200'; // Height adjusted for weekly view
+        // 添加 group 类用于悬停，并根据索引添加斑马条纹
+        const bgColor = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+        employeeRow.className = `group flex items-stretch min-h-[8rem] border-b border-gray-200 transition-colors duration-150 ${bgColor} hover:bg-indigo-50`;
 
         // Employee name column
         const nameEl = document.createElement('div');
-        nameEl.className = 'w-24 font-semibold text-sm truncate pr-2 py-2 text-gray-700 flex items-center justify-center bg-white sticky left-0 z-10 border-r border-gray-200';
+        // 优化姓名列样式，并添加 group-hover 效果
+        nameEl.className = 'w-24 font-semibold text-sm truncate pr-2 py-2 text-gray-800 flex items-center justify-center sticky left-0 z-10 border-r border-gray-200 transition-colors duration-150 bg-inherit group-hover:bg-indigo-100 group-hover:border-indigo-200';
         nameEl.textContent = employee.name;
         employeeRow.appendChild(nameEl);
 
@@ -742,10 +758,10 @@ export function renderWeeklyBoard(date) {
             const isToday = dateString === todayString;
             
             const trackEl = document.createElement('div');
-            // 为当天添加高亮效果
-            trackEl.className = `relative flex-1 h-full ${isToday ? 'bg-indigo-50' : 'bg-gray-50'} border-r ${isToday ? 'border-indigo-200' : 'border-gray-100'}`;
+            // 调整轨道样式，移除独立背景色（由父行决定），并在 group-hover 时改变边框
+            trackEl.className = `relative flex-1 h-full border-r transition-colors duration-150 ${isToday ? 'border-indigo-200' : 'border-gray-200'} group-hover:border-indigo-200`;
             trackEl.dataset.employeeId = employee.id;
-            trackEl.dataset.dateString = dateString; // Store date string for drop operations
+            trackEl.dataset.dateString = dateString;
 
             // Add Background Grid to each track
             const gridContainer = document.createElement('div');
@@ -797,7 +813,7 @@ export function renderWeeklyBoard(date) {
         });
 
         swimlanesContainer.appendChild(employeeRow);
-    }
+    });
 
     weekBoard.appendChild(swimlanesContainer);
     weeklyBoardContainer.appendChild(weekBoard);
@@ -812,8 +828,7 @@ export function renderWeeklyBoard(date) {
             event.dataTransfer.dropEffect = 'copy';
             
             // 使用更明显的高亮效果
-            const isToday = trackEl.classList.contains('bg-indigo-50');
-            trackEl.classList.add(isToday ? 'bg-indigo-100' : 'bg-yellow-100');
+            trackEl.classList.add('bg-yellow-100');
             
             // 显示网格线，便于对齐
             trackEl.querySelectorAll('.js-grid-line').forEach(el => el.classList.remove('hidden'));
@@ -821,7 +836,7 @@ export function renderWeeklyBoard(date) {
 
         trackEl.addEventListener('dragleave', () => {
             // 移除高亮效果
-            trackEl.classList.remove('bg-yellow-100', 'bg-indigo-100');
+            trackEl.classList.remove('bg-yellow-100');
             
             // 隐藏网格线
             trackEl.querySelectorAll('.js-grid-line').forEach(el => el.classList.add('hidden'));
@@ -831,7 +846,7 @@ export function renderWeeklyBoard(date) {
             event.preventDefault();
             
             // 移除高亮效果和网格线
-            trackEl.classList.remove('bg-yellow-100', 'bg-indigo-100');
+            trackEl.classList.remove('bg-yellow-100');
             trackEl.querySelectorAll('.js-grid-line').forEach(el => el.classList.add('hidden'));
             
             const newEmployeeData = event.dataTransfer.getData('application/json+employee');
