@@ -1,4 +1,4 @@
-import { getState, upsertShift, deleteShift, togglePeakHour } from './data-handler.js';
+import { getState, upsertShift, deleteShift, togglePeakHour, getScheduleForWeek } from './data-handler.js';
 
 // --- 模块常量 ---
 
@@ -48,6 +48,112 @@ function timeToPercentage(timeString) {
 }
 
 /**
+ * 创建班次元素，用于日视图和周视图
+ * @param {Object} shift - 班次数据
+ * @param {Object} employee - 员工数据
+ * @param {string} dateString - 日期字符串
+ * @param {HTMLElement} trackEl - 轨道元素
+ * @returns {HTMLElement} - 班次元素
+ */
+function createShiftElement(shift, employee, dateString, trackEl) {
+    const left = timeToPercentage(shift.start);
+    const right = timeToPercentage(shift.end);
+    const width = right - left;
+
+    const shiftEl = document.createElement('div');
+    shiftEl.className = 'absolute h-10 top-3 rounded-lg flex items-center justify-center text-xs font-medium shadow-sm cursor-grab z-10';
+    shiftEl.dataset.shiftId = shift.id;
+    shiftEl.dataset.dateString = dateString; // 存储日期信息，用于跨日期拖拽
+
+    // --- 设置样式 ---
+    shiftEl.style.left = `${left}%`;
+    shiftEl.style.width = `${width}%`;
+
+    // --- 添加事件监听器 ---
+    shiftEl.addEventListener('mousedown', (e) => {
+        const handle = e.target.closest('[data-handle]');
+        if (handle) {
+            // 调整大小
+            handleResizeStart(e, shift, trackEl, shiftEl, dateString);
+        } else {
+            // 移动
+            handleMoveStart(e, shift, trackEl, shiftEl, dateString);
+        }
+    });
+    
+    // 添加拖拽事件监听器，支持跨视图拖拽
+    shiftEl.draggable = true;
+    shiftEl.addEventListener('dragstart', (e) => {
+        const rect = shiftEl.getBoundingClientRect();
+        const initialOffsetX = e.clientX - rect.left;
+        
+        // 存储班次数据和初始点击位置，以及原始日期
+        const data = {
+            shift,
+            initialOffsetX,
+            originalDateString: dateString
+        };
+        e.dataTransfer.setData('application/json+shift', JSON.stringify(data));
+        e.dataTransfer.effectAllowed = 'move';
+        
+        // 添加半透明效果
+        shiftEl.classList.add('opacity-50');
+    });
+    
+    shiftEl.addEventListener('dragend', () => {
+        // 移除半透明效果
+        shiftEl.classList.remove('opacity-50');
+    });
+
+    // --- 添加右键菜单 ---
+    shiftEl.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation(); // 阻止冒泡到轨道
+        contextMenuState = { 
+            visible: true, 
+            employeeId: employee.id, 
+            dateString, 
+            shiftId: shift.id, 
+            context: 'shift' 
+        };
+        showContextMenu(e.pageX, e.pageY, 'shift');
+    });
+
+    // --- 添加调整大小的手柄 ---
+    const leftHandle = document.createElement('div');
+    leftHandle.className = 'absolute top-0 left-0 h-full w-4 cursor-col-resize z-20';
+    leftHandle.dataset.handle = 'left';
+
+    const rightHandle = document.createElement('div');
+    rightHandle.className = 'absolute top-0 right-0 h-full w-4 cursor-col-resize z-20';
+    rightHandle.dataset.handle = 'right';
+
+    shiftEl.appendChild(leftHandle);
+    shiftEl.appendChild(rightHandle);
+
+    // --- 设置颜色和文本 ---
+    let colors, textContent;
+    if (shift.type === 'work') {
+        colors = POSITION_COLORS[employee.position] || POSITION_COLORS.default;
+        const duration = calculateDuration(shift.start, shift.end);
+        textContent = `工作 (${duration.toFixed(1)}h)`;
+    } else { // break
+        colors = BREAK_COLORS;
+        const duration = calculateDuration(shift.start, shift.end);
+        textContent = `休息 (${duration.toFixed(1)}h)`;
+    }
+    
+    shiftEl.classList.add(colors.bg, colors.text);
+    
+    // --- 添加文本 ---
+    const textEl = document.createElement('span');
+    textEl.textContent = textContent;
+    shiftEl.appendChild(textEl);
+
+    return shiftEl;
+}
+
+/**
  * 将百分比转换为 "HH:MM" 格式的时间字符串, 并对齐到15分钟网格
  * @param {number} percentage
  * @returns {string}
@@ -84,6 +190,17 @@ function calculateDuration(startTime, endTime) {
     return durationMinutes / 60;
 }
 
+/**
+ * 格式化日期为 "YYYY-MM-DD"
+ * @param {Date} date
+ * @returns {string}
+ */
+function getFormattedDateString(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
 
 // --- 渲染函数 ---
 
@@ -194,8 +311,8 @@ function renderSwimlanes(dateString, employees, schedule) {
             const existingShiftData = event.dataTransfer.getData('application/json+shift');
 
             if (existingShiftData) {
-                // --- Handle dropping an existing shift ---
-                const { shift, initialOffsetX } = JSON.parse(existingShiftData);
+                                            // --- Handle dropping an existing shift ---
+                const { shift, initialOffsetX, originalDateString = dateString } = JSON.parse(existingShiftData);
                 const targetEmployeeId = Number(trackEl.dataset.employeeId);
 
                 const rect = trackEl.getBoundingClientRect();
@@ -222,6 +339,12 @@ function renderSwimlanes(dateString, employees, schedule) {
                     start: newStartTime,
                     end: newEndTime,
                 };
+                
+                // 如果是跨日期拖拽，需要先删除原日期的班次，再添加到新日期
+                if (originalDateString !== dateString) {
+                    deleteShift(originalDateString, shift.id);
+                    updatedShift.id = null; // 清除ID，让upsertShift生成新ID
+                }
                 
                 upsertShift(dateString, updatedShift);
 
@@ -284,72 +407,7 @@ function renderSwimlanes(dateString, employees, schedule) {
         const employeeShifts = schedule.filter(s => s.employeeId === employee.id);
         
         employeeShifts.forEach(shift => {
-            const left = timeToPercentage(shift.start);
-            const right = timeToPercentage(shift.end);
-            const width = right - left;
-
-            const shiftEl = document.createElement('div');
-            // Make the block relative to contain absolute handles and apply base styles
-            shiftEl.className = 'absolute h-10 top-3 rounded-lg flex items-center justify-center text-xs font-medium shadow-sm cursor-grab z-10';
-            
-            // --- REMOVED NATIVE DRAGGABLE ---
-            // shiftEl.draggable = true; 
-            shiftEl.dataset.shiftId = shift.id;
-            
-            // --- REFACTORED: Use a single mousedown handler for both moving and resizing ---
-            shiftEl.addEventListener('mousedown', (e) => {
-                const handle = e.target.closest('[data-handle]');
-                if (handle) {
-                    // It's a resize action, let the resize handler take over
-                    handleResizeStart(e, shift, trackEl, shiftEl, dateString);
-                } else {
-                    // It's a move action
-                    handleMoveStart(e, shift, trackEl, shiftEl, dateString);
-                }
-            });
-
-            // --- Add Context Menu Listener for SHIFT ---
-            shiftEl.addEventListener('contextmenu', (e) => {
-                e.preventDefault();
-                e.stopPropagation(); // Stop propagation to prevent track context menu
-                contextMenuState = { visible: true, employeeId: employee.id, dateString, shiftId: shift.id, context: 'shift' };
-                showContextMenu(e.pageX, e.pageY, 'shift');
-            });
-
-            // --- Add Resize Handles for RESIZING ---
-            const leftHandle = document.createElement('div');
-            leftHandle.className = 'absolute top-0 left-0 h-full w-4 cursor-col-resize z-20';
-            leftHandle.dataset.handle = 'left';
-
-            const rightHandle = document.createElement('div');
-            rightHandle.className = 'absolute top-0 right-0 h-full w-4 cursor-col-resize z-20';
-            rightHandle.dataset.handle = 'right';
-
-            shiftEl.appendChild(leftHandle);
-            shiftEl.appendChild(rightHandle);
-
-            // --- FIX: Restore the style properties for initial rendering ---
-            shiftEl.style.left = `${left}%`;
-            shiftEl.style.width = `${width}%`;
-
-            let colors, textContent;
-            if (shift.type === 'work') {
-                colors = POSITION_COLORS[employee.position] || POSITION_COLORS.default;
-                const duration = calculateDuration(shift.start, shift.end);
-                textContent = `工作 (${duration.toFixed(1)}h)`;
-            } else { // break
-                colors = BREAK_COLORS;
-                const duration = calculateDuration(shift.start, shift.end);
-                textContent = `休息 (${duration.toFixed(1)}h)`;
-            }
-            
-            shiftEl.classList.add(colors.bg, colors.text);
-            
-            // --- FIX: Add text via a child span to prevent overwriting handles ---
-            const textEl = document.createElement('span');
-            textEl.textContent = textContent;
-            shiftEl.appendChild(textEl);
-
+            const shiftEl = createShiftElement(shift, employee, dateString, trackEl);
             trackEl.appendChild(shiftEl);
         });
         
@@ -408,6 +466,8 @@ const handleMoveStart = (e, shift, trackEl, shiftEl, dateString) => {
         }
 
         const targetEmployeeId = Number(targetTrack.dataset.employeeId);
+        // 获取目标日期，支持跨日期拖拽
+        const targetDateString = targetTrack.dataset.dateString || dateString;
         
         const finalLeftPercent = parseFloat(shiftEl.style.left);
 
@@ -423,7 +483,13 @@ const handleMoveStart = (e, shift, trackEl, shiftEl, dateString) => {
         
         const updatedShift = { ...shift, employeeId: targetEmployeeId, start: newStartTime, end: newEndTime };
         
-        upsertShift(dateString, updatedShift);
+        // 如果是跨日期拖拽，需要先删除原日期的班次，再添加到新日期
+        if (targetDateString !== dateString) {
+            deleteShift(dateString, shift.id);
+            updatedShift.id = null; // 清除ID，让upsertShift生成新ID
+        }
+        
+        upsertShift(targetDateString, updatedShift);
         document.dispatchEvent(new CustomEvent('state-updated'));
     };
 
@@ -445,6 +511,9 @@ const handleResizeStart = (e, shift, trackEl, shiftEl, dateString) => {
     const initialMouseX = e.clientX;
     const initialLeftPercent = parseFloat(shiftEl.style.left);
     const initialWidthPercent = parseFloat(shiftEl.style.width);
+
+    // 高亮当前正在调整的班次
+    shiftEl.classList.add('ring-2', 'ring-indigo-500', 'z-20');
 
     const handleResizeMove = (moveEvent) => {
         const dx = moveEvent.clientX - initialMouseX;
@@ -474,6 +543,7 @@ const handleResizeStart = (e, shift, trackEl, shiftEl, dateString) => {
         document.removeEventListener('mouseup', handleResizeEnd);
         
         hideGrid(); // Hide grid on resize end
+        shiftEl.classList.remove('ring-2', 'ring-indigo-500', 'z-20'); // 移除高亮
 
         const finalLeftPercent = parseFloat(shiftEl.style.left);
         const finalWidthPercent = parseFloat(shiftEl.style.width);
@@ -481,8 +551,11 @@ const handleResizeStart = (e, shift, trackEl, shiftEl, dateString) => {
         const newStart = percentageToTime(finalLeftPercent);
         const newEnd = percentageToTime(finalLeftPercent + finalWidthPercent);
         
+        // 获取当前班次所在的日期（可能是周视图中的不同日期）
+        const currentDateString = shiftEl.dataset.dateString || dateString;
+        
         const updatedShift = { ...shift, start: newStart, end: newEnd };
-        upsertShift(dateString, updatedShift);
+        upsertShift(currentDateString, updatedShift);
         document.dispatchEvent(new CustomEvent('state-updated'));
     };
 
@@ -593,6 +666,234 @@ export function renderBoard(dateString) {
     
     renderTimeline(settings.peakHours || []);
     renderSwimlanes(dateString, employees, scheduleForDate);
+}
+
+/**
+ * 周视图渲染占位符
+ * @param {Date} date - 当前选定的日期 (通常是周一)
+ */
+export function renderWeeklyBoard(date) {
+    const weeklyBoardContainer = document.getElementById('weekly-schedule-board');
+    if (!weeklyBoardContainer) return;
+
+    weeklyBoardContainer.innerHTML = ''; // 清空内容
+
+    const { employees, settings } = getState();
+    const scheduleForWeek = getScheduleForWeek(date);
+
+    const peakHours = settings.peakHours || [];
+
+    const dayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    const weekDates = [];
+    const currentWeekStart = new Date(date);
+    currentWeekStart.setDate(date.getDate() - date.getDay() + (date.getDay() === 0 ? -6 : 1)); // 调整到本周的周一
+    currentWeekStart.setHours(0, 0, 0, 0); // 清除时间部分
+
+    // 获取当前日期的字符串，用于高亮当天
+    const today = new Date();
+    const todayString = getFormattedDateString(today);
+
+    for (let i = 0; i < 7; i++) {
+        const day = new Date(currentWeekStart);
+        day.setDate(currentWeekStart.getDate() + i);
+        weekDates.push(day);
+    }
+
+    // 创建周视图的整体容器
+    const weekBoard = document.createElement('div');
+    weekBoard.className = 'flex flex-col w-full h-full';
+
+    // 1. 渲染周头部 (日期和时间轴)
+    const weekHeader = document.createElement('div');
+    weekHeader.className = 'flex flex-row pl-24 border-b border-gray-300 bg-gray-50 sticky top-0 z-10'; // pl-24 for employee name column
+
+    weekDates.forEach((day, index) => {
+        const dayString = getFormattedDateString(day);
+        const isToday = dayString === todayString;
+        
+        const dayHeader = document.createElement('div');
+        // 为当天添加高亮效果
+        dayHeader.className = `flex-1 text-center py-2 border-r border-gray-300 ${isToday ? 'bg-indigo-50' : ''}`;
+        dayHeader.innerHTML = `
+            <div class="text-sm font-semibold ${isToday ? 'text-indigo-700' : ''}">${dayNames[day.getDay()]}</div>
+            <div class="text-xs ${isToday ? 'text-indigo-600' : 'text-gray-600'}">${day.getMonth() + 1}/${day.getDate()}</div>
+        `;
+        weekHeader.appendChild(dayHeader);
+    });
+    weekBoard.appendChild(weekHeader);
+
+    // 2. 渲染员工泳道和每日排班轨道
+    const swimlanesContainer = document.createElement('div');
+    swimlanesContainer.className = 'flex-1 overflow-y-auto';
+
+    for (const employee of employees) {
+        const employeeRow = document.createElement('div');
+        employeeRow.className = 'flex items-stretch h-32 border-b border-gray-200'; // Height adjusted for weekly view
+
+        // Employee name column
+        const nameEl = document.createElement('div');
+        nameEl.className = 'w-24 font-semibold text-sm truncate pr-2 py-2 text-gray-700 flex items-center justify-center bg-white sticky left-0 z-10 border-r border-gray-200';
+        nameEl.textContent = employee.name;
+        employeeRow.appendChild(nameEl);
+
+        // Daily tracks for the week
+        weekDates.forEach(day => {
+            const dateString = getFormattedDateString(day);
+            const isToday = dateString === todayString;
+            
+            const trackEl = document.createElement('div');
+            // 为当天添加高亮效果
+            trackEl.className = `relative flex-1 h-full ${isToday ? 'bg-indigo-50' : 'bg-gray-50'} border-r ${isToday ? 'border-indigo-200' : 'border-gray-100'}`;
+            trackEl.dataset.employeeId = employee.id;
+            trackEl.dataset.dateString = dateString; // Store date string for drop operations
+
+            // Add Background Grid to each track
+            const gridContainer = document.createElement('div');
+            gridContainer.className = 'js-grid-line hidden absolute inset-0 flex'; // Still hidden by default, can be toggled
+            for (let i = 0; i < TOTAL_HOURS; i++) {
+                const hourCell = document.createElement('div');
+                hourCell.className = 'flex-1 border-r border-gray-200';
+                const halfHourCell = document.createElement('div');
+                halfHourCell.className = 'w-1/2 h-full border-r border-dashed border-gray-200';
+                hourCell.appendChild(halfHourCell);
+                gridContainer.appendChild(hourCell);
+            }
+            trackEl.appendChild(gridContainer);
+
+            // Add Peak Hour Highlights to each track
+            const peakHoursTrackContainer = document.createElement('div');
+            peakHoursTrackContainer.className = 'absolute inset-0 pointer-events-none z-0';
+            renderPeakHours(peakHours, peakHoursTrackContainer);
+            trackEl.appendChild(peakHoursTrackContainer);
+
+            // 添加右键菜单监听器
+            trackEl.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const rect = trackEl.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                const timePercentage = (clickX / rect.width) * 100;
+                
+                contextMenuState = {
+                    visible: true,
+                    employeeId: employee.id,
+                    timePercentage: timePercentage,
+                    dateString: dateString,
+                    shiftId: null,
+                    context: 'track'
+                };
+                showContextMenu(e.pageX, e.pageY, 'track');
+            });
+
+            // Render shifts for this day and employee
+            const shiftsForDay = scheduleForWeek[dateString]?.filter(s => s.employeeId === employee.id) || [];
+            shiftsForDay.forEach(shift => {
+                const shiftEl = createShiftElement(shift, employee, dateString, trackEl);
+                trackEl.appendChild(shiftEl);
+            });
+
+            employeeRow.appendChild(trackEl);
+        });
+
+        swimlanesContainer.appendChild(employeeRow);
+    }
+
+    weekBoard.appendChild(swimlanesContainer);
+    weeklyBoardContainer.appendChild(weekBoard);
+
+    // Re-add event listeners for drag/drop on new elements
+    // This part needs to be refined for weekly view if cross-day dragging is desired
+    // For now, it will only allow dropping on the same day's track.
+    // 为周视图中的轨道添加拖拽功能
+    weeklyBoardContainer.querySelectorAll('[data-employee-id][data-date-string]').forEach(trackEl => {
+        trackEl.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'copy';
+            
+            // 使用更明显的高亮效果
+            const isToday = trackEl.classList.contains('bg-indigo-50');
+            trackEl.classList.add(isToday ? 'bg-indigo-100' : 'bg-yellow-100');
+            
+            // 显示网格线，便于对齐
+            trackEl.querySelectorAll('.js-grid-line').forEach(el => el.classList.remove('hidden'));
+        });
+
+        trackEl.addEventListener('dragleave', () => {
+            // 移除高亮效果
+            trackEl.classList.remove('bg-yellow-100', 'bg-indigo-100');
+            
+            // 隐藏网格线
+            trackEl.querySelectorAll('.js-grid-line').forEach(el => el.classList.add('hidden'));
+        });
+
+        trackEl.addEventListener('drop', (event) => {
+            event.preventDefault();
+            
+            // 移除高亮效果和网格线
+            trackEl.classList.remove('bg-yellow-100', 'bg-indigo-100');
+            trackEl.querySelectorAll('.js-grid-line').forEach(el => el.classList.add('hidden'));
+            
+            const newEmployeeData = event.dataTransfer.getData('application/json+employee');
+            const existingShiftData = event.dataTransfer.getData('application/json+shift');
+
+            const targetEmployeeId = Number(trackEl.dataset.employeeId);
+            const targetDateString = trackEl.dataset.dateString;
+            const rect = trackEl.getBoundingClientRect();
+            const dropX = event.clientX - rect.left;
+            const dropPercentage = (dropX / rect.width) * 100;
+            const startTime = percentageToTime(dropPercentage);
+
+            if (existingShiftData) {
+                const { shift, initialOffsetX, originalDateString } = JSON.parse(existingShiftData);
+
+                // 如果是跨日或跨员工移动现有班次
+                const duration = calculateDuration(shift.start, shift.end);
+                const [startH, startM] = startTime.split(':').map(Number);
+                const endTotalMinutes = startH * 60 + startM + duration * 60;
+                const endH = Math.floor(endTotalMinutes / 60);
+                const endM = endTotalMinutes % 60;
+                const endTime = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+
+                const updatedShift = {
+                    ...shift,
+                    employeeId: targetEmployeeId,
+                    start: startTime,
+                    end: endTime,
+                };
+
+                // 先从原日期删除，再添加到新日期
+                if (originalDateString !== targetDateString) {
+                    deleteShift(originalDateString, shift.id);
+                    updatedShift.id = null; // 清除ID，让upsertShift生成新ID
+                }
+                upsertShift(targetDateString, updatedShift);
+                document.dispatchEvent(new CustomEvent('state-updated'));
+
+            } else if (newEmployeeData) {
+                const draggedEmployee = JSON.parse(newEmployeeData);
+                // 检查是否拖到了该员工的轨道
+                if (draggedEmployee.id !== targetEmployeeId) {
+                    console.warn("请将员工拖到对应的轨道上创建班次");
+                    return;
+                }
+                
+                // 在周视图中，允许将员工拖到任意一天创建班次
+                const [startH, startM] = startTime.split(':').map(Number);
+                const endH = startH + 2; // Default 2-hour shift
+                const endTime = `${String(endH).padStart(2, '0')}:${String(startM).padStart(2, '0')}`;
+
+                const newShift = {
+                    employeeId: draggedEmployee.id,
+                    start: startTime,
+                    end: endTime,
+                    type: 'work',
+                };
+                upsertShift(targetDateString, newShift);
+                document.dispatchEvent(new CustomEvent('state-updated'));
+            }
+        });
+    });
 }
 
 /**

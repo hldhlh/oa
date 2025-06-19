@@ -212,5 +212,37 @@ export function togglePeakHour(hour) {
     saveState();
 }
 
+/**
+ * 格式化日期为 "YYYY-MM-DD"
+ * @param {Date} date
+ * @returns {string}
+ */
+function getFormattedDateString(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+/**
+ * 获取指定日期所在周的所有排班数据
+ * @param {Date} date - 周内的任意一天
+ * @returns {Object.<string, Array>} - 以日期字符串为键，排班数组为值的对象
+ */
+export function getScheduleForWeek(date) {
+    const scheduleForWeek = {};
+    const currentWeekStart = new Date(date);
+    currentWeekStart.setDate(date.getDate() - date.getDay() + (date.getDay() === 0 ? -6 : 1)); // 调整到本周的周一
+    currentWeekStart.setHours(0, 0, 0, 0);
+
+    for (let i = 0; i < 7; i++) {
+        const day = new Date(currentWeekStart);
+        day.setDate(currentWeekStart.getDate() + i);
+        const dateString = getFormattedDateString(day);
+        scheduleForWeek[dateString] = state.schedule[dateString] || [];
+    }
+    return scheduleForWeek;
+}
+
 // 初始化时自动加载状态
 loadState(); 
