@@ -59,30 +59,56 @@ const router = async () => {
 
 const updateUserNav = (user) => {
     const navLinks = document.getElementById('nav-links');
-    if (!navLinks) return;
+    const mobileMenu = document.getElementById('mobile-menu');
+    if (!navLinks || !mobileMenu) return;
 
     if (user) {
-        navLinks.innerHTML = `
+        const desktopLinks = `
             <a href="#home" class="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700">主页</a>
             <a href="#schedule" class="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700">日程</a>
             <span class="px-3 py-2 text-sm font-medium">你好, ${user.email}</span>
             <a href="#" id="logout-button" class="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700">退出</a>
         `;
-        document.getElementById('logout-button')?.addEventListener('click', async (e) => {
-            e.preventDefault();
-            await logout();
-            // onAuthStateChange将处理重定向
-        });
+        const mobileLinks = `
+            <a href="#home" class="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700">主页</a>
+            <a href="#schedule" class="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700">日程</a>
+            <span class="block px-3 py-2 text-base font-medium">你好, ${user.email}</span>
+            <a href="#" id="logout-button-mobile" class="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700">退出</a>
+        `;
+        navLinks.innerHTML = desktopLinks;
+        mobileMenu.innerHTML = mobileLinks;
+
+        document.getElementById('logout-button')?.addEventListener('click', handleLogout);
+        document.getElementById('logout-button-mobile')?.addEventListener('click', handleLogout);
     } else {
-        navLinks.innerHTML = `
+        const links = `
             <a href="#login" class="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700">登录</a>
             <a href="#register" class="px-3 py-2 rounded-md text-sm font-medium bg-gray-800 hover:bg-gray-700">注册</a>
         `;
+        const mobileLinks = `
+            <a href="#login" class="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700">登录</a>
+            <a href="#register" class="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700">注册</a>
+        `;
+        navLinks.innerHTML = links;
+        mobileMenu.innerHTML = mobileLinks;
     }
+};
+
+const handleLogout = async (e) => {
+    e.preventDefault();
+    await logout();
+    // onAuthStateChange将处理重定向
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
     loadLayout();
+    
+    document.getElementById('header-placeholder').addEventListener('click', (e) => {
+        if (e.target.closest('#mobile-menu-button')) {
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenu.classList.toggle('hidden');
+        }
+    });
     
     // 首次加载时手动调用路由
     await router();
