@@ -1,5 +1,6 @@
 {
   "mcpServers": {
+
     "supabase": {
       "command": "cmd",
       "args": [
@@ -10,6 +11,21 @@
         "--access-token",
         "sbp_54b769f49eb6f7f422adc65272e45e1603f14f2b"
       ]
+    },
+
+    "context7": {
+      "url": "https://mcp.context7.com/mcp"
+    },
+
+    "playwright": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@playwright/mcp@latest"
+      ]
     }
+    
   }
 }
