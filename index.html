@@ -3,25 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OA 系统 - 登录</title>
+    <title>OA 系统 - 认证</title>
     <link rel="stylesheet" href="styles/global.css">
 </head>
-<body>
+<body class="auth-page">
+    <div id="toast-notification"></div>
+
     <div class="container">
         <div class="card">
-            <h1>OA 系统</h1>
+            <h1 id="form-title">OA 系统登录</h1>
+            
+            <!-- 登录表单 -->
             <form id="login-form">
                 <div class="form-group">
-                    <label for="username">用户名</label>
-                    <input type="text" id="username" name="username" required>
+                    <label for="login-email">邮箱</label>
+                    <input type="email" id="login-email" name="email" required>
                 </div>
                 <div class="form-group">
-                    <label for="password">密码</label>
-                    <input type="password" id="password" name="password" required>
+                    <label for="login-password">密码</label>
+                    <input type="password" id="login-password" name="password" required>
                 </div>
                 <button type="submit">登 录</button>
             </form>
+
+            <!-- 注册表单 -->
+            <form id="register-form">
+                <div class="form-group">
+                    <label for="register-email">邮箱</label>
+                    <input type="email" id="register-email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-password">密码 (至少6位)</label>
+                    <input type="password" id="register-password" name="password" required minlength="6">
+                </div>
+                <div class="form-group">
+                    <label for="confirm-password">确认密码</label>
+                    <input type="password" id="confirm-password" name="confirm-password" required minlength="6">
+                </div>
+                <button type="submit">创建账户</button>
+            </form>
+
+            <!-- 切换链接 -->
+            <p id="toggle-to-register" class="toggle-link">还没有账户？ <a href="#">立即注册</a></p>
+            <p id="toggle-to-login" class="toggle-link">已有账户？ <a href="#">返回登录</a></p>
         </div>
     </div>
+    <script src="https://cdn.jsdmirror.com/npm/@supabase/supabase-js@2"></script>
+    <script src="scripts/auth.js" defer></script>
 </body>
 </html>

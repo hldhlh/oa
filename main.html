@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OA 系统</title>
+    <link rel="stylesheet" href="styles/global.css">
+    <link rel="stylesheet" href="pages/dashboard/style.css"> <!-- 复用部分样式 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div id="toast-notification"></div>
+    <div class="dashboard-wrapper">
+        <header class="main-header">
+            <h1>OA 系统</h1>
+            <button id="hamburger-btn" class="hamburger-btn" aria-label="切换菜单">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <div id="nav-menu" class="nav-menu">
+                <nav class="main-nav">
+                    <a href="pages/dashboard/index.html" class="nav-link active" data-target="pages/dashboard/index.html">仪表盘</a>
+                    <a href="pages/scheduling/index.html" class="nav-link" data-target="pages/scheduling/index.html">排班管理</a>
+                    <a href="pages/knowledge-base/index.html" class="nav-link" data-target="pages/knowledge-base/index.html">知识库</a>
+                    <a href="pages/operations/index.html" class="nav-link" data-target="pages/operations/index.html">运营事务</a>
+                </nav>
+                <div class="user-menu">
+                    <span id="user-info">正在加载...</span>
+                    <button id="logout-button" class="btn-logout">登出</button>
+                </div>
+            </div>
+        </header>
+
+        <main class="content-host">
+            <iframe id="content-frame" src="pages/dashboard/index.html" frameborder="0" width="100%" height="100%"></iframe>
+        </main>
+
+        <footer class="dashboard-footer">
+            <p>&copy; 2025 OA 系统. All Rights Reserved.</p>
+        </footer>
+    </div>
+
+    <script src="scripts/main.js"></script>
+</body>
+</html> 

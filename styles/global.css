@@ -22,14 +22,17 @@
 
 body {
     font-family: var(--font-family-base);
-    background-color: var(--background-color);
+    background-color: var(--secondary-background);
     color: var(--text-color);
     line-height: 1.6;
+}
+
+/* Auth Page specific layout */
+body.auth-page {
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background-color: var(--secondary-background);
 }
 
 /* 3. 核心元素样式 */
@@ -39,7 +42,7 @@ h1, h2, h3 {
 }
 
 h1 {
-    font-size: 2.25rem;
+    font-size: 2rem;
     text-align: center;
 }
 
@@ -100,18 +103,58 @@ button {
     width: 100%;
     padding: 0.85rem 1rem;
     border: none;
-    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: background-color 0.3s ease;
     background-color: var(--primary-color);
     color: var(--primary-contrast);
     font-size: 1rem;
     font-weight: 600;
-    font-family: var(--font-family-base);
-    cursor: pointer;
-    transition: background-color 0.2s;
+    border-radius: var(--border-radius);
+}
+
+#toast-notification {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translate(-50%, -150%);
+    background-color: var(--primary-color);
+    color: var(--primary-contrast);
+    padding: 1rem 1.5rem;
+    border-radius: var(--border-radius);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    font-size: 0.95rem;
+    font-weight: 500;
+    opacity: 0;
+    visibility: hidden;
+    transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s ease, visibility 0.4s;
+}
+
+#toast-notification.show {
+    transform: translate(-50%, 0);
+    opacity: 1;
+    visibility: visible;
 }
 
 button:hover {
-    opacity: 0.9;
+    background-color: #333;
+}
+
+/* 切换链接样式 */
+.toggle-link {
+    text-align: center;
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+    color: #555;
+}
+
+.toggle-link a {
+    font-weight: 600;
+}
+
+/* 默认隐藏注册表单和对应的切换链接 */
+#register-form, #toggle-to-login {
+    display: none;
 }
 
 /* 4. 响应式设计 */
@@ -127,4 +170,30 @@ button:hover {
     h1 {
         font-size: 2rem;
     }
+}
+
+/* 5. Main Application Shell Layout (for main.html) */
+html, body {
+    height: 100%;
+    overflow-x: hidden; /* Prevent horizontal scrollbars on the main page */
+}
+
+.dashboard-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+}
+
+.content-host {
+    flex: 1; /* This makes the main content area grow to fill available space */
+    display: flex; /* Make it a flex container for the iframe */
+    overflow: hidden; /* Prevent potential overflow issues */
+}
+
+#content-frame {
+    flex: 1; /* The iframe itself should also grow */
+    width: 100%;
+    height: 100%;
+    border: none; /* Clean look */
 }
