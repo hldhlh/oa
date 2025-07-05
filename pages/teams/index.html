@@ -1,0 +1,21 @@
+<link rel="stylesheet" href="style.css">
+
+<div class="container">
+    <h1>团队管理</h1>
+    <p>在这里创建和管理您的团队。</p>
+
+    <div class="card">
+        <div class="form-inline">
+            <input type="text" id="new-team-name-input" placeholder="输入新团队的名称...">
+            <button id="create-team-btn">创建团队</button>
+        </div>
+    </div>
+
+    <div id="teams-list-container">
+        <!-- 用户的团队列表将在这里动态加载 -->
+        <p>正在加载您的团队信息...</p>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="script.js"></script> 
