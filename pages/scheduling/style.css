@@ -303,72 +303,72 @@ body {
 }
 
 .form-group input {
-    width: 100%;
-    padding: 8px;
     background-color: #282828;
     border: 1px solid #444;
     color: #e0e0e0;
-    border-radius: 4px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 14px;
+    width: 100%;
 }
 
 .context-menu {
-    position: absolute;
+    position: fixed;
     z-index: 1000;
-    background-color: var(--card-color);
-    border: 1px solid var(--border-color);
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
     border-radius: 8px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    display: none;
+    opacity: 0;
+    transform: scale(0.95);
+    transition: opacity 0.1s ease-out, transform 0.1s ease-out;
     padding: 6px;
-    min-width: 200px;
-    backdrop-filter: blur(5px); /* 可选：增加毛玻璃效果 */
-    -webkit-backdrop-filter: blur(5px);
-    transition: opacity 0.1s ease-in-out, transform 0.1s ease-in-out;
-    opacity: 0; /* 初始隐藏 */
-    transform: scale(0.95); /* 初始缩小 */
+    min-width: 180px;
 }
 
-/* 用于JS控制显示的类 */
 .context-menu.visible {
+    display: block;
     opacity: 1;
     transform: scale(1);
 }
 
 .context-menu ul {
     list-style: none;
-    padding: 10px 0;
+    padding: 0;
     margin: 0;
-    background-color: #fff;
-    border: 1px solid #ccc;
-    box-shadow: 2px 2px 5px rgba(0,0,0,0.15);
-    border-radius: 5px;
-    min-width: 150px;
+    display: flex;
+    flex-direction: column;
 }
 
 .context-menu ul li {
-    padding: 8px 15px;
+    padding: 10px 15px;
     cursor: pointer;
+    color: #0a0a0a;
+    border-radius: 5px;
+    font-size: 14px;
+    transition: background-color 0.1s ease;
 }
 
 .context-menu ul li:hover {
     background-color: #f0f0f0;
+    color: #0a0a0a;
 }
 
-/* 右键菜单项的显示逻辑 */
 .context-menu .ctx-lane-action,
 .context-menu .ctx-item-action {
-    display: none;
+    display: none; /* 由JS控制显示 */
 }
 
 .context-menu ul li.separator {
     height: 1px;
     background-color: #e0e0e0;
-    padding: 0;
     margin: 5px 0;
+    padding: 0;
 }
 
 .modal-actions {
-    display: flex;
-    justify-content: flex-end;
+    margin-top: 20px;
 }
 
 .modal-actions button {
@@ -427,4 +427,109 @@ body {
 .schedule-item.resizing {
     opacity: 0.7;
     border-style: dashed;
+} 
+
+/* 新增：截断和错误状态的样式 */
+.schedule-item.truncated-left::before {
+    content: '...';
+    position: absolute;
+    left: 2px;
+    top: 2px;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: bold;
+}
+
+.schedule-item.truncated-right::after {
+    content: '...';
+    position: absolute;
+    right: 2px;
+    top: 2px;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: bold;
+}
+
+.schedule-item.error {
+    background: linear-gradient(145deg, #e25353, #b33e3e);
+    border: 1px solid #9a2a2a;
+}
+
+.schedule-item.error::before {
+    content: '⚠️';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 20px;
+} 
+
+/* 同步状态指示器样式 */
+.sync-status-container {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+    margin-right: 15px;
+}
+
+.sync-status {
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+.sync-status::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+}
+
+.sync-status.initializing {
+    color: #f0c040;
+}
+
+.sync-status.initializing::before {
+    background-color: #f0c040;
+    animation: pulse 1.5s infinite;
+}
+
+.sync-status.connected {
+    color: #4caf50;
+}
+
+.sync-status.connected::before {
+    background-color: #4caf50;
+}
+
+.sync-status.reconnecting {
+    color: #ff9800;
+}
+
+.sync-status.reconnecting::before {
+    background-color: #ff9800;
+    animation: pulse 1s infinite;
+}
+
+.sync-status.error {
+    color: #f44336;
+}
+
+.sync-status.error::before {
+    background-color: #f44336;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.4;
+    }
+    100% {
+        opacity: 1;
+    }
 } 

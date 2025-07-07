@@ -38,6 +38,12 @@ const PIXELS_PER_HOUR = 100;
 let currentUser = null;
 let currentTeams = [];
 let selectedTeamId = null;
+let realtimeChannel = null;
+let clientId = null; // 新增：客户端ID，用于同步
+let lastSyncTime = null; // 新增：上次同步时间
+
+const SNAP_MINUTES = 30; // 对齐的分钟数
+const SNAP_GRID_PIXELS = (PIXELS_PER_HOUR / 60) * SNAP_MINUTES; // 对应的像素
 
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -48,11 +54,137 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     currentUser = user;
     
+    // 生成唯一的客户端ID
+    clientId = `client_${Math.random().toString(36).substring(2, 9)}_${Date.now()}`;
+    console.log(`[初始化] 客户端ID: ${clientId}`);
+    
     loadSettings();
     await initializeTeamSelector();
     await initializeTimeline();
     setupEventListeners();
+    
+    // 启动定期同步机制
+    startPeriodicSync();
+
+    // 添加页面关闭事件监听
+    window.addEventListener('beforeunload', async (e) => {
+        // 发送离线状态广播
+        try {
+            await broadcastUserStatus('offline');
+            console.log('[调试] 已发送离线状态广播');
+        } catch (error) {
+            console.error('[错误] 发送离线状态广播失败:', error);
+        }
+    });
 });
+
+/**
+ * 启动定期同步机制，确保数据与服务器保持同步
+ */
+function startPeriodicSync() {
+    // 每60秒执行一次完整同步
+    const syncInterval = setInterval(async () => {
+        if (!selectedTeamId) return;
+        
+        console.log('[调试] 执行定期数据同步...');
+        try {
+            await syncWithServer();
+        } catch (error) {
+            console.error('[错误] 定期同步失败:', error);
+        }
+    }, 60000);
+    
+    // 页面关闭时清除定时器
+    window.addEventListener('beforeunload', () => {
+        clearInterval(syncInterval);
+    });
+    
+    // 网络恢复时立即同步
+    window.addEventListener('online', async () => {
+        console.log('[调试] 网络连接已恢复，执行数据同步...');
+        showMesg('网络已连接，正在同步数据...');
+        try {
+            await syncWithServer();
+            showMesg('数据同步完成');
+        } catch (error) {
+            console.error('[错误] 网络恢复后同步失败:', error);
+            showMesg('数据同步失败，请刷新页面');
+        }
+    });
+    
+    // 网络断开时通知用户
+    window.addEventListener('offline', () => {
+        console.log('[警告] 网络连接已断开');
+        showMesg('网络已断开，部分功能可能不可用');
+    });
+}
+
+/**
+ * 与服务器同步数据
+ * 使用新的后端同步函数获取最新数据
+ */
+async function syncWithServer() {
+    if (!selectedTeamId || !clientId) {
+        console.log('[警告] 无法同步：缺少团队ID或客户端ID');
+        return;
+    }
+    
+    try {
+        console.log(`[同步] 开始同步团队 ${selectedTeamId} 的数据，客户端ID: ${clientId}`);
+        
+        // 使用新的简化同步函数，完全避免时间戳参数
+        const { data, error } = await supabase.rpc('sync_schedules_simple', {
+            p_team_id: selectedTeamId,
+            p_client_id: clientId
+        });
+        
+        if (error) {
+            console.error('[错误] 同步失败:', error);
+            return;
+        }
+        
+        console.log('[同步] 收到服务器响应:', data);
+        
+        // 更新上次同步时间（仅用于日志记录，不再传递给后端）
+        lastSyncTime = data.timestamp;
+        
+        // 处理更新的项目
+        if (data.items && data.items.length > 0) {
+            console.log(`[同步] 处理 ${data.items.length} 个更新项目`);
+            
+            // 更新本地缓存
+            data.items.forEach(serverItem => {
+                const localIndex = currentScheduleData.findIndex(item => item.id === serverItem.id);
+                if (localIndex === -1) {
+                    // 新项目
+                    currentScheduleData.push(serverItem);
+                } else {
+                    // 更新项目
+                    currentScheduleData[localIndex] = serverItem;
+                }
+            });
+        }
+        
+        // 处理删除的项目
+        if (data.deleted && data.deleted.length > 0) {
+            console.log(`[同步] 处理 ${data.deleted.length} 个删除项目`);
+            
+            data.deleted.forEach(deletedItem => {
+                // 从本地缓存中移除
+                currentScheduleData = currentScheduleData.filter(item => item.id !== deletedItem.id);
+                // 从DOM中移除
+                removeItemFromDom(deletedItem.id);
+            });
+        }
+        
+        // 重新渲染时间条
+        renderScheduleItems(currentScheduleData, timelineStartHour);
+        
+    } catch (error) {
+        console.error('[错误] 同步过程中发生异常:', error);
+        throw error;
+    }
+}
 
 async function initializeTeamSelector() {
     const { data: teams, error } = await supabase.rpc('get_user_teams_with_members');
@@ -75,15 +207,22 @@ async function initializeTeamSelector() {
         selector.value = lastSelected;
     }
     
-    selectedTeamId = selector.value;
+    selectedTeamId = parseInt(selector.value, 10);
     selector.addEventListener('change', (e) => {
-        selectedTeamId = e.target.value;
+        selectedTeamId = parseInt(e.target.value, 10);
         localStorage.setItem('selectedTeamId', selectedTeamId);
         initializeTimeline();
     });
 }
 
 async function initializeTimeline() {
+    // 1. 移除旧的实时订阅
+    if (realtimeChannel) {
+        await supabase.removeChannel(realtimeChannel);
+        realtimeChannel = null;
+        console.log('已移除旧的实时订阅频道。');
+    }
+
     if (!selectedTeamId) {
         document.getElementById('timeline-lanes').innerHTML = '<p>请先选择一个团队。</p>';
         return;
@@ -93,18 +232,164 @@ async function initializeTimeline() {
     const selectedTeam = currentTeams.find(t => t.id == selectedTeamId);
     generateTimeLanes(selectedTeam.members, timelineStartHour, timelineEndHour);
 
-    const { data, error } = await supabase
-        .from('schedules')
-        .select('*')
-        .eq('team_id', selectedTeamId);
-    
-    if (error) {
-        console.error('获取团队排班失败', error);
-        return;
+    // 首先尝试使用同步函数获取最新数据
+    try {
+        await syncWithServer();
+        console.log('[初始化] 已通过同步函数获取最新数据');
+    } catch (syncError) {
+        console.error('[初始化] 同步函数失败，使用传统方法:', syncError);
+        
+        // 如果同步函数失败，回退到传统方法
+        const { data, error } = await supabase
+            .from('schedules')
+            .select('*')
+            .eq('team_id', selectedTeamId);
+        
+        if (error) {
+            console.error('获取团队排班失败', error);
+            return;
+        }
+        currentScheduleData = data || []; // Update local cache
+        renderScheduleItems(currentScheduleData, timelineStartHour);
     }
-    currentScheduleData = data || []; // Update local cache
-    renderScheduleItems(currentScheduleData, timelineStartHour);
+    
     syncScroll();
+
+    // 2. 创建新的实时订阅频道
+    // 修改：使用更简单的频道名称，避免随机字符串可能导致的问题
+    const channelName = `schedules:team_${selectedTeamId}`;
+    
+    // 修改：使用更可靠的实时订阅配置
+    realtimeChannel = supabase.channel(channelName, {
+        config: {
+            broadcast: { self: true }, // 修改：接收自己发出的广播，确保数据一致性
+            presence: { key: currentUser.id } // 添加presence功能，跟踪在线用户
+        }
+    })
+    // 订阅排班表变更
+    .on('postgres_changes', 
+        { 
+            event: '*', 
+            schema: 'public', 
+            table: 'schedules',
+            filter: `team_id=eq.${selectedTeamId}` 
+        }, 
+        (payload) => {
+            console.log('接收到排班表实时变更:', payload);
+            handleRealtimeUpdate(payload);
+        }
+    )
+    // 订阅删除记录表变更
+    .on('postgres_changes', 
+        { 
+            event: 'INSERT', // 只需要监听插入事件，因为删除记录表只会有新增操作
+            schema: 'public', 
+            table: 'deleted_schedules',
+            filter: `team_id=eq.${selectedTeamId}` 
+        }, 
+        (payload) => {
+            console.log('接收到删除记录表实时变更:', payload);
+            handleDeletedRecordEvent(payload);
+        }
+    )
+    // 添加广播频道，用于发送自定义通知
+    .on('broadcast', { event: 'schedule_operation' }, (payload) => {
+        console.log('接收到广播消息:', payload);
+        handleBroadcastMessage(payload);
+    })
+    .subscribe(async (status, err) => {
+        if (status === 'SUBSCRIBED') {
+            console.log(`已成功订阅团队 ${selectedTeamId} 的排班变更。`);
+            // 订阅成功后，立即进行一次全量同步，确保数据是最新的
+            await refreshScheduleData();
+            
+            // 更新同步状态指示器
+            updateSyncStatusIndicator('connected');
+            
+            // 发送在线状态广播
+            broadcastUserStatus('online');
+        }
+        if (status === 'CHANNEL_ERROR') {
+            console.error('实时订阅失败:', err);
+            showMesg('实时同步连接失败，请刷新页面重试。');
+            
+            // 更新同步状态指示器
+            updateSyncStatusIndicator('error');
+            
+            // 尝试重新连接
+            setTimeout(() => {
+                console.log('尝试重新建立实时连接...');
+                initializeTimeline();
+            }, 5000);
+        }
+        if (status === 'TIMED_OUT') {
+            console.warn('实时连接超时，尝试重新连接...');
+            
+            // 更新同步状态指示器
+            updateSyncStatusIndicator('reconnecting');
+            
+            // 尝试重新连接
+            setTimeout(() => {
+                console.log('尝试重新建立实时连接...');
+                initializeTimeline();
+            }, 3000);
+        }
+    });
+}
+
+// 修改refreshScheduleData函数，使用新的同步函数
+async function refreshScheduleData() {
+    try {
+        await syncWithServer();
+    } catch (syncError) {
+        console.error('[错误] 刷新数据失败，尝试传统方法:', syncError);
+        
+        // 如果同步函数失败，回退到传统的刷新方法
+        if (!selectedTeamId) return;
+        
+        const { data, error } = await supabase
+            .from('schedules')
+            .select('*')
+            .eq('team_id', selectedTeamId);
+        
+        if (error) {
+            console.error('刷新排班数据失败', error);
+            return;
+        }
+        
+        // 比较并更新本地缓存
+        if (data && data.length > 0) {
+            let hasChanges = false;
+            
+            // 检查新增和更新的项目
+            data.forEach(serverItem => {
+                const localItem = currentScheduleData.find(item => item.id === serverItem.id);
+                if (!localItem) {
+                    // 新项目
+                    currentScheduleData.push(serverItem);
+                    hasChanges = true;
+                } else if (JSON.stringify(localItem) !== JSON.stringify(serverItem)) {
+                    // 更新项目
+                    Object.assign(localItem, serverItem);
+                    hasChanges = true;
+                }
+            });
+            
+            // 检查删除的项目
+            const serverIds = data.map(item => item.id);
+            const deletedItems = currentScheduleData.filter(item => !serverIds.includes(item.id));
+            if (deletedItems.length > 0) {
+                currentScheduleData = currentScheduleData.filter(item => serverIds.includes(item.id));
+                hasChanges = true;
+            }
+            
+            // 如果有变化，重新渲染
+            if (hasChanges) {
+                console.log('检测到数据变化，重新渲染时间条');
+                renderScheduleItems(currentScheduleData, timelineStartHour);
+            }
+        }
+    }
 }
 
 function setupEventListeners() {
@@ -252,8 +537,12 @@ async function handleUpdateType(newType) {
         if (index !== -1) {
             currentScheduleData[index] = data;
             renderScheduleItems(currentScheduleData, timelineStartHour);
+            
+            // 发送广播通知其他用户
+            broadcastScheduleOperation('update', data);
         }
     }
+    
     hideContextMenu();
 }
 
@@ -287,48 +576,106 @@ async function handleCreateNewItem(e) {
 function calculateHourFromClick(e) {
     const rect = e.currentTarget.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
-    const snapGridPixels = 25; // 15分钟 = 25px
-    const startPixel = Math.floor(clickX / snapGridPixels) * snapGridPixels;
+    const startPixel = Math.floor(clickX / SNAP_GRID_PIXELS) * SNAP_GRID_PIXELS;
     return (startPixel / PIXELS_PER_HOUR) + timelineStartHour;
 }
 
 async function createScheduleItemAt(userId, startHour, type = 'work') {
-    if (!userId || isNaN(startHour)) return;
-
-    const today = new Date();
-    const startTime = new Date(today.setHours(0, 0, 0, 0) + startHour * 60 * 60 * 1000);
-    const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 默认1小时
-
-    const newItem = {
-        user_id: userId,
-        start_time: startTime.toISOString(),
-        end_time: endTime.toISOString(),
-        task_description: type === 'work' ? '工作班次' : '休息时间',
-        type: type
-    };
-
-    await createScheduleInDb(newItem);
+    console.log(`[调试] 创建排班，用户ID: ${userId}, 开始小时: ${startHour}, 类型: ${type}`);
+    
+    if (!userId || isNaN(startHour)) {
+        console.error('[错误] 创建排班缺少必要参数:', { userId, startHour, type });
+        showMesg('创建排班失败：参数无效');
+        return;
+    }
+    
+    try {
+        // 确保userId是字符串类型
+        userId = String(userId);
+        
+        // 创建一个基于今天日期的时间点
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // 重置到今天的0点
+        
+        // 计算开始和结束时间
+        const startTimeMs = today.getTime() + (startHour * 60 * 60 * 1000);
+        const endTimeMs = startTimeMs + (60 * 60 * 1000); // 默认1小时
+        
+        const startTime = new Date(startTimeMs);
+        const endTime = new Date(endTimeMs);
+        
+        console.log(`[调试] 计算的时间 - 开始: ${startTime.toISOString()}, 结束: ${endTime.toISOString()}`);
+        
+        // 创建新项目对象
+        const newItem = {
+            user_id: userId,
+            start_time: startTime.toISOString(),
+            end_time: endTime.toISOString(),
+            task_description: type === 'work' ? '工作班次' : '休息时间',
+            type: type // 确保类型字段存在
+        };
+        
+        await createScheduleInDb(newItem);
+    } catch (error) {
+        console.error('[错误] 创建排班时发生异常:', error);
+        showMesg('创建排班失败，请稍后重试');
+    }
 }
 
 async function createScheduleInDb(newItem) {
-    console.log('正在创建新排班...');
+    console.log('[调试] 正在创建新排班...', newItem);
 
-    // Add the selected team_id to the new item before insertion.
-    const itemToInsert = { ...newItem, team_id: selectedTeamId };
+    try {
+        // 确保team_id是数字类型
+        const teamId = parseInt(selectedTeamId, 10);
+        if (isNaN(teamId)) {
+            console.error('[错误] 无效的团队ID:', selectedTeamId);
+            showMesg('创建失败：无效的团队ID');
+            return;
+        }
 
-    const { data, error } = await supabase
-        .from('schedules')
-        .insert(itemToInsert)
-        .select()
-        .single();
+        // 确保user_id是字符串类型
+        newItem.user_id = String(newItem.user_id);
+        
+        // 添加团队ID到项目
+        const itemToInsert = { 
+            ...newItem, 
+            team_id: teamId,
+            created_at: new Date().toISOString(), // 添加创建时间
+            version: 1 // 添加version字段，初始值为1
+        };
 
-    if (error) {
-        console.error('创建排班失败:', error);
-        showMesg('创建失败，请稍后重试。');
-    } else {
-        console.log('创建成功:', data);
+        console.log('[调试] 准备插入数据:', itemToInsert);
+
+        const { data, error } = await supabase
+            .from('schedules')
+            .insert([itemToInsert])
+            .select()
+            .single();
+
+        if (error) {
+            console.error('[错误] 创建排班失败:', error);
+            showMesg('创建失败，请稍后重试。');
+            return null;
+        } 
+        
+        console.log('[成功] 创建成功:', data);
+        
+        // 添加到本地缓存
         currentScheduleData.push(data);
-        renderScheduleItems(currentScheduleData, timelineStartHour); // 重新渲染以显示新条目
+        
+        // 渲染到UI
+        renderOrUpdateItem(data, timelineStartHour);
+        console.log('[调试] 乐观UI更新已执行 (创建)');
+        
+        // 发送广播通知其他用户
+        broadcastScheduleOperation('create', data);
+        
+        return data;
+    } catch (error) {
+        console.error('[错误] 创建排班过程中发生异常:', error);
+        showMesg('创建失败，发生未知错误');
+        return null;
     }
 }
 
@@ -410,9 +757,9 @@ function generateTimeLanes(members, start, end) {
         timelineLanesContainer.appendChild(lane);
 
         // 为每个泳道的背景绑定右键菜单和双击事件
-        const laneBodyWrapper = lane.querySelector('.lane-body-content-wrapper');
-        laneBodyWrapper.addEventListener('contextmenu', showContextMenu);
-        laneBodyWrapper.addEventListener('dblclick', handleCreateNewItem);
+        const laneBody = lane.querySelector('.lane-body');
+        laneBody.addEventListener('contextmenu', showContextMenu);
+        laneBody.addEventListener('dblclick', handleCreateNewItem);
     });
 }
 
@@ -461,81 +808,7 @@ function renderScheduleItems(items, timelineStart) {
     if (!items) return;
 
     items.forEach(item => {
-        const lane = document.querySelector(`.lane[data-user-id="${item.user_id}"] .lane-body-content-wrapper`);
-        if (!lane) return;
-
-        const itemEl = document.createElement('div');
-        itemEl.className = 'schedule-item';
-        itemEl.dataset.id = item.id;
-        
-        // Add class based on item type for styling
-        if (item.type === 'break') {
-            itemEl.classList.add('item-break');
-        } else {
-            itemEl.classList.add('item-work');
-        }
-
-        // Attach context menu listener to the item itself
-        itemEl.addEventListener('contextmenu', showContextMenu);
-
-        const start = new Date(item.start_time);
-        const end = new Date(item.end_time);
-
-        // 使用毫秒数差来精确计算跨天时长
-        const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-
-        const startHour = start.getHours() + start.getMinutes() / 60;
-        
-        // 关键改动：位置相对于时间轴起点
-        const left = (startHour - timelineStart) * PIXELS_PER_HOUR;
-        const width = durationHours * PIXELS_PER_HOUR;
-
-        if (itemEl.contains(document.activeElement)) return;
-        
-        // 只渲染在可视范围内的条目 (可以加一个 buffer)
-        if (endHour > timelineStart && startHour < timelineEndHour) {
-            itemEl.style.left = `${left}px`;
-            itemEl.style.width = `${width}px`;
-
-            // 创建删除按钮
-            const deleteBtn = document.createElement('span');
-            deleteBtn.className = 'delete-btn';
-            deleteBtn.innerHTML = '&times;'; // "X" 符号
-            deleteBtn.addEventListener('click', handleDeleteItem);
-            itemEl.appendChild(deleteBtn);
-
-            // 创建可编辑的文本区域
-            const textSpan = document.createElement('span');
-            textSpan.className = 'item-text';
-            textSpan.textContent = item.task_description;
-            itemEl.appendChild(textSpan);
-
-            // 单击进入编辑模式
-            itemEl.addEventListener('click', (e) => {
-                // 防止拖拽时触发编辑
-                if (itemEl.classList.contains('dragging') || itemEl.classList.contains('resizing')) return;
-                // 防止点击删除按钮或把手时触发
-                if (e.target.classList.contains('delete-btn') || e.target.classList.contains('resize-handle')) return;
-                
-                makeEditable(textSpan, item.id);
-            });
-            
-            // 创建调整大小的把手
-            const leftHandle = document.createElement('div');
-            leftHandle.className = 'resize-handle left';
-            itemEl.appendChild(leftHandle);
-
-            const rightHandle = document.createElement('div');
-            rightHandle.className = 'resize-handle right';
-            itemEl.appendChild(rightHandle);
-
-            // 为拖拽和调整大小添加事件监听器
-            itemEl.addEventListener('mousedown', handleDragStart);
-            leftHandle.addEventListener('mousedown', handleResizeStart);
-            rightHandle.addEventListener('mousedown', handleResizeStart);
-
-            lane.appendChild(itemEl);
-        }
+        renderOrUpdateItem(item, timelineStart);
     });
 }
 
@@ -576,10 +849,12 @@ function makeEditable(textSpan, itemId) {
 async function updateScheduleTask(id, newTask) {
     console.log(`正在更新 ID: ${id} 的任务描述...`);
     
-    const { error } = await supabase
+    const { data, error } = await supabase
         .from('schedules')
         .update({ task_description: newTask })
-        .eq('id', id);
+        .eq('id', id)
+        .select()
+        .single();
 
     if (error) {
         console.error('更新任务描述失败:', error);
@@ -588,7 +863,10 @@ async function updateScheduleTask(id, newTask) {
         console.log('任务描述更新成功。');
         const itemIndex = currentScheduleData.findIndex(item => item.id == id);
         if (itemIndex !== -1) {
-            currentScheduleData[itemIndex].task_description = newTask;
+            currentScheduleData[itemIndex] = data;
+            
+            // 发送广播通知其他用户
+            broadcastScheduleOperation('update', data);
         }
     }
 }
@@ -605,25 +883,69 @@ async function handleDeleteItem(e) {
 }
 
 async function deleteScheduleItem(itemId) {
-    console.log(`正在删除 ID: ${itemId} 的排班...`);
+    console.log(`[调试] 正在删除排班，ID: ${itemId}`);
+    
+    try {
+        // 确保itemId是有效的
+        if (!itemId) {
+            console.error('[错误] 删除排班失败：无效的ID');
+            showMesg('删除失败：无效的ID');
+            return false;
+        }
+        
+        // 先保存被删除项目的数据，用于广播
+        const deletedItem = findItemDataById(itemId);
+        if (!deletedItem) {
+            console.error(`[错误] 未找到ID为 ${itemId} 的排班数据，无法删除。`);
+            showMesg('删除失败：未找到排班数据');
+            return false;
+        }
+        
+        // 保存一份完整的数据副本，用于后续广播
+        const itemForBroadcast = {...deletedItem};
+        
+        console.log(`[调试] 准备删除排班，数据:`, itemForBroadcast);
+        
+        // 使用RPC函数替代直接删除
+        const { data, error } = await supabase
+            .rpc('delete_schedule_safely', {
+                p_schedule_id: parseInt(itemId, 10)
+            });
 
-    const { error } = await supabase
-        .from('schedules')
-        .delete()
-        .eq('id', itemId);
-
-    if (error) {
-        console.error('删除失败:', error);
-        showMesg('删除失败，请稍后重试。');
-    } else {
-        console.log('删除成功。');
+        if (error) {
+            console.error('[错误] 删除排班失败:', error);
+            showMesg('删除失败，请稍后重试。');
+            return false;
+        }
+        
+        console.log('[成功] 删除排班RPC结果:', data);
+        
+        if (!data.success) {
+            console.error('[错误] 删除排班失败:', data.message);
+            showMesg(`删除失败: ${data.message}`);
+            return false;
+        }
+        
         // 从UI和缓存中移除
         const itemElement = document.querySelector(`.schedule-item[data-id="${itemId}"]`);
         if (itemElement) {
             itemElement.remove();
         }
+        
+        // 从本地缓存中移除
         currentScheduleData = currentScheduleData.filter(item => item.id != itemId);
+        
+        // 显示成功消息
         showMesg('排班已删除。');
+        
+        // 发送广播通知其他用户
+        broadcastScheduleOperation('delete', itemForBroadcast);
+        
+        return true;
+    } catch (error) {
+        console.error('[错误] 删除排班过程中发生异常:', error);
+        showMesg('删除失败，发生未知错误');
+        return false;
     }
 }
 
@@ -639,15 +961,14 @@ function handleResizeStart(e) {
     const startX = e.clientX;
     const initialLeft = itemElement.offsetLeft;
     const initialWidth = itemElement.offsetWidth;
-    const minWidth = 25; // 最小宽度为15分钟
+    const minWidth = SNAP_GRID_PIXELS; // 最小宽度为30分钟
 
     function handleResizeMove(e) {
         const deltaX = e.clientX - startX;
-        const snapGridPixels = 25;
 
         if (handleSide === 'right') {
             let newWidth = initialWidth + deltaX;
-            newWidth = Math.round(newWidth / snapGridPixels) * snapGridPixels;
+            newWidth = Math.round(newWidth / SNAP_GRID_PIXELS) * SNAP_GRID_PIXELS;
             newWidth = Math.max(minWidth, newWidth);
             itemElement.style.width = `${newWidth}px`;
         } else { // left handle
@@ -655,13 +976,12 @@ function handleResizeStart(e) {
             let newWidth = initialWidth - deltaX;
 
             // 吸附
-            const snappedDelta = Math.round(deltaX / snapGridPixels) * snapGridPixels;
-            newLeft = initialLeft + snappedDelta;
-            newWidth = initialWidth - snappedDelta;
-
-            if (newWidth >= minWidth) {
-                itemElement.style.left = `${newLeft}px`;
-                itemElement.style.width = `${newWidth}px`;
+            const snappedLeft = Math.round(newLeft / SNAP_GRID_PIXELS) * SNAP_GRID_PIXELS;
+            const snappedWidth = Math.round(newWidth / SNAP_GRID_PIXELS) * SNAP_GRID_PIXELS;
+            
+            if (snappedWidth >= minWidth) {
+                itemElement.style.left = `${snappedLeft}px`;
+                itemElement.style.width = `${snappedWidth}px`;
             }
         }
     }
@@ -728,12 +1048,8 @@ function handleDragStart(e) {
         let newLeft = initialLeft + deltaX;
 
         // 2. 实现网格吸附
-        const pixelsPerMinute = 100 / 60; // 100px 每小时
-        const snapIntervalMinutes = 15;
-        const snapGridPixels = pixelsPerMinute * snapIntervalMinutes; // 15分钟对应的像素数
-
         // 计算最接近的吸附点
-        newLeft = Math.round(newLeft / snapGridPixels) * snapGridPixels;
+        newLeft = Math.round(newLeft / SNAP_GRID_PIXELS) * SNAP_GRID_PIXELS;
 
         // 3. 边界检查 (防止拖出时间轴)
         const timelineWidth = itemElement.parentElement.offsetWidth;
@@ -867,46 +1183,680 @@ async function saveAndRerenderTimeline() {
 
 // --- 辅助函数 ---
 function findItemDataById(id) {
-    // id可能是字符串，而currentScheduleData中的id可能是数字，用==进行宽松比较
-    return currentScheduleData.find(item => item.id == id);
+    console.log(`[调试] 查找排班数据，ID: ${id}, 类型: ${typeof id}`);
+    
+    if (!id) {
+        console.error('[错误] 查找排班数据失败：ID为空');
+        return null;
+    }
+    
+    // 确保currentScheduleData是有效的数组
+    if (!Array.isArray(currentScheduleData)) {
+        console.error('[错误] 排班数据缓存无效');
+        return null;
+    }
+    
+    try {
+        // 尝试不同的比较方式，增强健壮性
+        // 首先尝试严格相等
+        let item = currentScheduleData.find(item => item.id === id);
+        
+        // 如果没找到，尝试宽松相等（处理字符串vs数字的情况）
+        if (!item) {
+            item = currentScheduleData.find(item => item.id == id);
+        }
+        
+        // 如果还是没找到，尝试将两者都转为字符串比较
+        if (!item) {
+            const idStr = String(id);
+            item = currentScheduleData.find(item => String(item.id) === idStr);
+        }
+        
+        if (item) {
+            console.log(`[调试] 找到排班数据:`, item);
+        } else {
+            console.warn(`[警告] 未找到ID为 ${id} 的排班数据`);
+        }
+        
+        return item || null;
+    } catch (error) {
+        console.error('[错误] 查找排班数据时发生异常:', error);
+        return null;
+    }
 }
 
 async function updateScheduleTime(id, newStartTime, newEndTime, newOwnerId) {
-    console.log(`正在更新 ID: ${id} 的时间为 ${newStartTime} 到 ${newEndTime}`);
-    
-    const updateObject = {
-        start_time: newStartTime,
-        end_time: newEndTime,
-    };
-
-    if (newOwnerId) {
-        updateObject.user_id = newOwnerId;
-        console.log(`...并将其所有者更改为 ${newOwnerId}`);
-    }
-    
     const { data, error } = await supabase
         .from('schedules')
-        .update(updateObject)
+        .update({
+            start_time: newStartTime,
+            end_time: newEndTime,
+            user_id: newOwnerId
+        })
         .eq('id', id)
         .select()
         .single();
 
     if (error) {
-        console.error('更新排班失败:', error);
-        showMesg('更新失败，请刷新页面后重试。');
+        console.error('Error updating schedule time:', error);
+        showMesg('更新失败，正在恢复...');
+        // Revert UI on failure
+        renderOrUpdateItem(findItemDataById(id), timelineStartHour);
     } else {
-        console.log('更新成功:', data);
-        const itemIndex = currentScheduleData.findIndex(item => item.id == id);
-        if (itemIndex !== -1) {
-            currentScheduleData[itemIndex].start_time = newStartTime;
-            currentScheduleData[itemIndex].end_time = newEndTime;
-            if (newOwnerId) {
-                // 如果所有者已更改，最佳做法是完全重新获取和渲染数据
-                // 以确保UI正确反映新的所有权（条目移动到新泳道）。
-                // 为了简单起见，我们在这里只更新本地缓存并重新渲染。
-                currentScheduleData[itemIndex].user_id = newOwnerId;
-                renderScheduleItems(currentScheduleData, timelineStartHour);
-            }
+        // Update local cache
+        const index = currentScheduleData.findIndex(item => item.id == id);
+        if (index !== -1) {
+            currentScheduleData[index] = data;
+            renderOrUpdateItem(data, timelineStartHour);
+            console.log('[调试] 乐观UI更新已执行 (移动/缩放)');
+            
+            // 发送广播通知其他用户
+            broadcastScheduleOperation('update', data);
         }
     }
+}
+
+// --- 以下为新增的实时更新相关函数 ---
+
+/**
+ * 处理从 Supabase Realtime 收到的数据变更事件。
+ * @param {object} payload - Supabase 发送的负载对象。
+ */
+function handleRealtimeUpdate(payload) {
+    try {
+        console.log('[调试] 接收到实时事件:', JSON.stringify(payload));
+        
+        if (!payload || !payload.eventType) {
+            console.error('[错误] 实时事件缺少必要字段:', payload);
+            return;
+        }
+        
+        // 记录事件类型和时间戳，便于调试
+        const now = new Date().toISOString();
+        console.log(`[${now}] 处理 ${payload.eventType} 事件，表: ${payload.table}，ID: ${payload.new?.id || payload.old?.id}`);
+        
+        switch (payload.eventType) {
+            case 'INSERT':
+                handleInsertEvent(payload);
+                break;
+            case 'UPDATE':
+                handleUpdateEvent(payload);
+                break;
+            case 'DELETE':
+                handleDeleteEvent(payload);
+                break;
+            default:
+                console.warn('[警告] 未知的事件类型:', payload.eventType);
+                break;
+        }
+    } catch (error) {
+        console.error('[严重错误] 处理实时事件时发生异常:', error);
+        showMesg('同步数据时出错，请刷新页面');
+    }
+}
+
+/**
+ * 处理INSERT类型的实时事件
+ * @param {object} payload - Supabase 发送的负载对象
+ */
+function handleInsertEvent(payload) {
+    if (!payload.new || !payload.new.id) {
+        console.error('[错误] INSERT事件缺少新数据:', payload);
+        return;
+    }
+    
+    // 检查是否已存在于本地缓存中
+    const existingIndex = currentScheduleData.findIndex(item => item.id === payload.new.id);
+    
+    if (existingIndex !== -1) {
+        console.log(`[调试] 条目 ${payload.new.id} 已存在于本地缓存中，跳过INSERT处理`);
+        // 如果已存在但数据不同，更新它
+        if (JSON.stringify(currentScheduleData[existingIndex]) !== JSON.stringify(payload.new)) {
+            console.log(`[调试] 但数据不同，更新本地缓存`);
+            currentScheduleData[existingIndex] = payload.new;
+            renderOrUpdateItem(payload.new, timelineStartHour);
+        }
+    } else {
+        // 新增到本地缓存
+        console.log(`[调试] 来自云端的同步：新增条目 ${payload.new.id}`);
+        currentScheduleData.push(payload.new);
+        renderOrUpdateItem(payload.new, timelineStartHour);
+        
+        // 显示通知
+        if (payload.new.user_id !== currentUser.id) {
+            const teamMember = findTeamMember(payload.new.user_id);
+            const userName = teamMember ? (teamMember.full_name || teamMember.email) : '团队成员';
+            showMesg(`${userName} 添加了新的排班`);
+        }
+    }
+}
+
+/**
+ * 处理UPDATE类型的实时事件
+ * @param {object} payload - Supabase 发送的负载对象
+ */
+function handleUpdateEvent(payload) {
+    if (!payload.new || !payload.new.id) {
+        console.error('[错误] UPDATE事件缺少新数据:', payload);
+        return;
+    }
+    
+    console.log(`[调试] 来自云端的同步：更新条目 ${payload.new.id}`);
+    
+    // 查找本地缓存中的索引
+    const index = currentScheduleData.findIndex(item => item.id === payload.new.id);
+    
+    if (index !== -1) {
+        // 检查是否有实质性变化
+        const oldItem = currentScheduleData[index];
+        const hasChanges = JSON.stringify(oldItem) !== JSON.stringify(payload.new);
+        
+        if (hasChanges) {
+            console.log(`[调试] 检测到实质性变化，更新本地缓存和UI`);
+            // 更新本地缓存
+            currentScheduleData[index] = payload.new;
+            
+            // 更新UI
+            renderOrUpdateItem(payload.new, timelineStartHour);
+            
+            // 显示通知（如果不是当前用户的操作）
+            if (payload.new.user_id !== currentUser.id) {
+                const teamMember = findTeamMember(payload.new.user_id);
+                const userName = teamMember ? (teamMember.full_name || teamMember.email) : '团队成员';
+                showMesg(`${userName} 更新了排班`);
+            }
+        } else {
+            console.log(`[调试] 没有检测到变化，跳过更新`);
+        }
+    } else {
+        // 如果本地没有这个条目，作为新条目添加
+        console.log(`[调试] 本地缓存中不存在ID为 ${payload.new.id} 的条目，作为新条目添加`);
+        currentScheduleData.push(payload.new);
+        renderOrUpdateItem(payload.new, timelineStartHour);
+    }
+}
+
+/**
+ * 处理DELETE类型的实时事件
+ * @param {object} payload - Supabase 发送的负载对象
+ */
+function handleDeleteEvent(payload) {
+    if (!payload.old || !payload.old.id) {
+        console.error('[错误] DELETE事件缺少旧数据:', payload);
+        return;
+    }
+    
+    console.log(`[调试] 来自云端的同步：删除条目 ${payload.old.id}`);
+    
+    // 从本地缓存中移除
+    const removedItems = currentScheduleData.filter(item => item.id === payload.old.id);
+    currentScheduleData = currentScheduleData.filter(item => item.id !== payload.old.id);
+    
+    // 从DOM中移除
+    removeItemFromDom(payload.old.id);
+    
+    // 显示通知（如果不是当前用户的操作且确实删除了条目）
+    if (removedItems.length > 0 && removedItems[0].user_id !== currentUser.id) {
+        const teamMember = findTeamMember(removedItems[0].user_id);
+        const userName = teamMember ? (teamMember.full_name || teamMember.email) : '团队成员';
+        showMesg(`${userName} 删除了一个排班`);
+    }
+}
+
+/**
+ * 处理从 deleted_schedules 表接收到的实时事件
+ * @param {object} payload - Supabase 发送的负载对象
+ */
+function handleDeletedRecordEvent(payload) {
+    if (!payload.new || !payload.new.id) {
+        console.error('[错误] 删除记录事件缺少新数据:', payload);
+        return;
+    }
+
+    console.log(`[调试] 来自云端的同步：新增删除记录 ${payload.new.id}`);
+
+    // 从本地缓存中移除
+    const removedItems = currentScheduleData.filter(item => item.id === payload.new.id);
+    currentScheduleData = currentScheduleData.filter(item => item.id !== payload.new.id);
+
+    // 从DOM中移除
+    removeItemFromDom(payload.new.id);
+
+    // 显示通知（如果不是当前用户的操作且确实删除了条目）
+    if (removedItems.length > 0 && removedItems[0].user_id !== currentUser.id) {
+        const teamMember = findTeamMember(removedItems[0].user_id);
+        const userName = teamMember ? (teamMember.full_name || teamMember.email) : '团队成员';
+        showMesg(`${userName} 删除了一个排班`);
+    }
+}
+
+/**
+ * 处理从广播频道接收到的自定义通知
+ * @param {object} payload - Supabase 发送的负载对象
+ */
+function handleBroadcastMessage(payload) {
+    if (!payload) {
+        console.error('[错误] 接收到空的广播消息');
+        return;
+    }
+
+    // 添加详细日志，输出完整的payload结构
+    console.log('[调试] 接收到广播消息完整结构:', JSON.stringify(payload));
+
+    // 检查payload的结构，确保能正确提取数据
+    // Supabase广播消息可能有不同的结构，需要适应这些变化
+    let eventType = payload.event;
+    let eventData = payload.payload;
+
+    // 如果没有payload.payload但有payload.data，使用payload.data
+    if (!eventData && payload.data) {
+        eventData = payload.data;
+        console.log('[调试] 使用payload.data作为事件数据');
+    }
+
+    // 如果eventData本身包含operation和item，则可能是直接传递了整个对象
+    if (!eventType && eventData && eventData.operation) {
+        eventType = 'schedule_operation';
+        console.log('[调试] 从数据中推断事件类型为schedule_operation');
+    }
+
+    if (!eventType) {
+        console.error('[错误] 广播消息缺少事件类型:', payload);
+        return;
+    }
+
+    if (!eventData) {
+        console.error('[错误] 广播消息缺少数据:', payload);
+        return;
+    }
+
+    console.log(`[调试] 处理广播消息: ${eventType} - ${JSON.stringify(eventData)}`);
+
+    switch (eventType) {
+        case 'user_status_update':
+            handleUserStatusUpdate(eventData);
+            break;
+        case 'schedule_operation':
+            handleScheduleOperationBroadcast(eventData);
+            break;
+        default:
+            console.warn('[警告] 未知广播事件类型:', eventType);
+            break;
+    }
+}
+
+/**
+ * 处理排班操作广播
+ * @param {object} data - 包含 operation 和 item 的数据
+ */
+function handleScheduleOperationBroadcast(data) {
+    // 详细记录接收到的数据，帮助调试
+    console.log('[调试] 处理排班操作广播，接收数据:', JSON.stringify(data));
+
+    // 检查数据完整性
+    if (!data) {
+        console.error('[错误] 排班操作广播数据为空');
+        return;
+    }
+
+    // 检查operation字段
+    if (!data.operation) {
+        console.error('[错误] 排班操作广播缺少operation字段:', data);
+        // 尝试从数据结构中推断操作类型
+        if (data.type) {
+            data.operation = data.type;
+            console.log('[调试] 使用data.type作为operation:', data.operation);
+        } else {
+            return; // 无法处理，直接返回
+        }
+    }
+
+    // 检查item字段
+    if (!data.item) {
+        console.error('[错误] 排班操作广播缺少item字段:', data);
+        // 尝试从数据结构中找到item数据
+        if (data.record || data.new || data.old) {
+            data.item = data.record || data.new || data.old;
+            console.log('[调试] 从其他字段提取item数据:', data.item);
+        } else {
+            return; // 无法处理，直接返回
+        }
+    }
+
+    // 确保item有必要的字段
+    const item = data.item;
+    if (!item.id) {
+        console.error('[错误] 排班项目缺少id字段:', item);
+        return;
+    }
+
+    // 如果是自己发出的广播，跳过处理
+    if (item.user_id === currentUser.id) {
+        console.log('[调试] 跳过自己发出的广播');
+        return;
+    }
+
+    // 查找团队成员信息
+    const teamMember = findTeamMember(item.user_id);
+    const userName = teamMember ? (teamMember.full_name || teamMember.email) : '团队成员';
+    let message = '';
+
+    // 根据操作类型处理
+    switch (data.operation) {
+        case 'create':
+        case 'insert':  // 兼容可能的其他命名
+            message = `${userName} 添加了新的排班`;
+            // 添加到本地缓存并渲染
+            if (!currentScheduleData.some(i => i.id === item.id)) {
+                currentScheduleData.push(item);
+                renderOrUpdateItem(item, timelineStartHour);
+            }
+            break;
+        case 'update':
+            message = `${userName} 更新了排班`;
+            // 更新本地缓存并重新渲染
+            const index = currentScheduleData.findIndex(i => i.id === item.id);
+            if (index !== -1) {
+                currentScheduleData[index] = item;
+                renderOrUpdateItem(item, timelineStartHour);
+            } else {
+                // 如果本地没有，添加到缓存并渲染
+                currentScheduleData.push(item);
+                renderOrUpdateItem(item, timelineStartHour);
+            }
+            break;
+        case 'delete':
+            message = `${userName} 删除了排班`;
+            // 从本地缓存和DOM中移除
+            currentScheduleData = currentScheduleData.filter(i => i.id !== item.id);
+            removeItemFromDom(item.id);
+            break;
+        default:
+            console.warn('[警告] 未知排班操作类型:', data.operation);
+            return;
+    }
+
+    showMesg(message);
+}
+
+/**
+ * 处理用户在线状态更新
+ * @param {object} data - 包含 user_id 和 status 的数据
+ */
+function handleUserStatusUpdate(data) {
+    if (!data || !data.user_id || !data.status) {
+        console.error('[错误] 用户状态更新缺少必要字段:', data);
+        return;
+    }
+
+    const teamMember = findTeamMember(data.user_id);
+    if (!teamMember) {
+        console.warn(`[警告] 未找到用户 ${data.user_id} 的团队成员信息。`);
+        return;
+    }
+
+    const userName = teamMember.full_name || teamMember.email;
+    let message = `${userName} 已`;
+
+    if (data.status === 'online') {
+        message += '上线';
+    } else if (data.status === 'offline') {
+        message += '下线';
+    }
+
+    showMesg(message);
+}
+
+/**
+ * 更新同步状态指示器
+ * @param {string} status - 'connected', 'error', 'reconnecting'
+ */
+function updateSyncStatusIndicator(status) {
+    const syncStatusIndicator = document.getElementById('sync-status');
+    if (syncStatusIndicator) {
+        syncStatusIndicator.textContent = status;
+        syncStatusIndicator.className = `sync-status ${status}`;
+    }
+}
+
+/**
+ * 发送用户在线状态广播
+ * @param {string} status - 'online' 或 'offline'
+ */
+async function broadcastUserStatus(status) {
+    if (!realtimeChannel) {
+        console.warn('实时频道未初始化，无法发送广播。');
+        return;
+    }
+
+    try {
+        await realtimeChannel.send({
+            type: 'broadcast',
+            event: 'user_status_update',
+            data: {
+                user_id: currentUser.id,
+                status: status
+            }
+        });
+        console.log(`[调试] 发送用户在线状态广播: ${status}`);
+    } catch (error) {
+        console.error('[错误] 发送用户在线状态广播失败:', error);
+    }
+}
+
+/**
+ * 发送排班操作广播
+ * @param {string} operation - 'create', 'update', 'delete'
+ * @param {object} data - 排班数据对象
+ */
+async function broadcastScheduleOperation(operation, data) {
+    if (!realtimeChannel) {
+        console.warn('实时频道未初始化，无法发送广播。');
+        return;
+    }
+
+    // 确保操作类型有效
+    if (!['create', 'update', 'delete'].includes(operation)) {
+        console.error('[错误] 无效的排班操作类型:', operation);
+        return;
+    }
+
+    // 确保数据对象有效
+    if (!data || !data.id) {
+        console.error('[错误] 排班数据无效:', data);
+        return;
+    }
+
+    try {
+        // 构造广播消息，确保格式一致
+        const broadcastData = {
+            operation: operation,
+            item: data
+        };
+
+        // 发送广播
+        await realtimeChannel.send({
+            type: 'broadcast',
+            event: 'schedule_operation',
+            payload: broadcastData  // 使用payload字段，与Supabase的广播格式保持一致
+        });
+
+        console.log(`[调试] 发送排班操作广播: ${operation} - ${JSON.stringify(data)}`);
+    } catch (error) {
+        console.error('[错误] 发送排班操作广播失败:', error);
+    }
+}
+
+/**
+ * 根据用户ID查找团队成员信息
+ * @param {string} userId - 用户ID
+ * @returns {object|null} 团队成员对象或null
+ */
+function findTeamMember(userId) {
+    if (!currentTeams || !selectedTeamId) return null;
+    
+    const team = currentTeams.find(t => t.id == selectedTeamId);
+    if (!team || !team.members) return null;
+    
+    return team.members.find(m => m.user_id === userId);
+}
+
+/**
+ * 根据ID从DOM中移除一个排班条目元素。
+ * @param {string|number} itemId - 要移除的排班条目ID。
+ */
+function removeItemFromDom(itemId) {
+    const itemElement = document.querySelector(`.schedule-item[data-id='${itemId}']`);
+    if (itemElement) {
+        itemElement.remove();
+    }
+}
+
+/**
+ * 在时间轴上创建或更新单个排班条目，避免完全重绘。
+ * @param {object} item - 要渲染或更新的排班数据对象。
+ * @param {number} timelineStart - 时间轴的起始小时。
+ */
+function renderOrUpdateItem(item, timelineStart) {
+    // 确保参数有效
+    if (!item || !item.id || !item.start_time || !item.end_time) {
+        console.error('[错误] 渲染排班条目时缺少必要数据:', item);
+        return;
+    }
+    
+    // 查找对应泳道
+    const lane = document.querySelector(`.lane[data-user-id="${item.user_id}"] .lane-body-content-wrapper`);
+    if (!lane) {
+        console.warn(`[警告] 未找到用户 ${item.user_id} 的泳道，无法渲染条目 ${item.id}`);
+        return;
+    }
+
+    // 查找现有元素或创建新元素
+    let itemEl = document.querySelector(`.schedule-item[data-id="${item.id}"]`);
+
+    // 如果元素不存在，则创建
+    if (!itemEl) {
+        console.log(`[调试] 创建新的排班条目元素: ${item.id}`);
+        itemEl = document.createElement('div');
+        itemEl.className = 'schedule-item';
+        itemEl.dataset.id = item.id;
+        
+        // 仅在创建时添加事件监听器
+        itemEl.addEventListener('contextmenu', showContextMenu);
+        itemEl.addEventListener('mousedown', handleDragStart);
+
+        // 创建删除按钮
+        const deleteBtn = document.createElement('span');
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.innerHTML = '&times;';
+        deleteBtn.addEventListener('click', handleDeleteItem);
+        itemEl.appendChild(deleteBtn);
+
+        // 创建可编辑的文本区域
+        const textSpan = document.createElement('span');
+        textSpan.className = 'item-text';
+        itemEl.appendChild(textSpan);
+        
+        // 创建调整大小的把手
+        const leftHandle = document.createElement('div');
+        leftHandle.className = 'resize-handle left';
+        leftHandle.addEventListener('mousedown', handleResizeStart);
+        itemEl.appendChild(leftHandle);
+
+        const rightHandle = document.createElement('div');
+        rightHandle.className = 'resize-handle right';
+        rightHandle.addEventListener('mousedown', handleResizeStart);
+        itemEl.appendChild(rightHandle);
+        
+        // 单击进入编辑模式
+        itemEl.addEventListener('click', (e) => {
+            if (itemEl.classList.contains('dragging') || itemEl.classList.contains('resizing')) return;
+            if (e.target.classList.contains('delete-btn') || e.target.classList.contains('resize-handle')) return;
+            makeEditable(textSpan, item.id);
+        });
+
+        // 将新元素添加到正确的泳道
+        lane.appendChild(itemEl);
+    } else {
+        // 如果元素已存在但在错误的泳道中，移动它
+        const currentLane = itemEl.closest('.lane-body-content-wrapper');
+        if (currentLane !== lane) {
+            console.log(`[调试] 排班条目 ${item.id} 需要移动到正确的泳道`);
+            currentLane.removeChild(itemEl);
+            lane.appendChild(itemEl);
+        }
+    }
+    
+    // --- 更新元素样式和内容 ---
+    
+    // 更新类型样式
+    itemEl.classList.toggle('item-break', item.type === 'break');
+    itemEl.classList.toggle('item-work', item.type !== 'break');
+
+    // 解析时间并计算位置
+    try {
+        const start = new Date(item.start_time);
+        const end = new Date(item.end_time);
+        
+        // 计算持续时间（小时）
+        const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+        
+        // 计算开始时间（小时）
+        const startHour = start.getHours() + start.getMinutes() / 60;
+        
+        // 计算相对于时间轴起点的位置（像素）
+        const left = (startHour - timelineStart) * PIXELS_PER_HOUR;
+        
+        // 计算宽度（像素）
+        const width = durationHours * PIXELS_PER_HOUR;
+        
+        console.log(`[调试] 排班条目 ${item.id} 位置计算: 
+            开始时间=${start.toLocaleTimeString()}, 
+            结束时间=${end.toLocaleTimeString()}, 
+            持续时间=${durationHours}小时, 
+            开始小时=${startHour}, 
+            时间轴起点=${timelineStart}, 
+            左偏移=${left}px, 
+            宽度=${width}px`);
+        
+        // 应用样式
+        itemEl.style.left = `${left}px`;
+        itemEl.style.width = `${width}px`;
+        
+        // 处理跨天的情况（如果开始时间在时间轴左侧）
+        if (left < 0) {
+            console.log(`[警告] 排班条目 ${item.id} 开始时间在时间轴外（左侧）`);
+            itemEl.style.left = '0px';
+            itemEl.style.width = `${width + left}px`; // 减少宽度
+            itemEl.classList.add('truncated-left');
+        } else {
+            itemEl.classList.remove('truncated-left');
+        }
+        
+        // 处理超出时间轴右侧的情况
+        const timelineWidth = (timelineEndHour - timelineStart) * PIXELS_PER_HOUR;
+        if (left + width > timelineWidth) {
+            console.log(`[警告] 排班条目 ${item.id} 结束时间在时间轴外（右侧）`);
+            itemEl.style.width = `${timelineWidth - left}px`;
+            itemEl.classList.add('truncated-right');
+        } else {
+            itemEl.classList.remove('truncated-right');
+        }
+    } catch (error) {
+        console.error(`[错误] 计算排班条目 ${item.id} 位置时出错:`, error);
+        // 设置默认位置，避免完全不可见
+        itemEl.style.left = '0px';
+        itemEl.style.width = '100px';
+        itemEl.classList.add('error');
+    }
+
+    // 更新文本内容
+    const textSpan = itemEl.querySelector('.item-text');
+    if (textSpan) {
+        textSpan.textContent = item.task_description || '未命名任务';
+    }
+    
+    // 添加数据属性，便于调试
+    itemEl.dataset.startTime = item.start_time;
+    itemEl.dataset.endTime = item.end_time;
 } 
