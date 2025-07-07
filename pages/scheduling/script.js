@@ -3,6 +3,33 @@ const SUPABASE_URL = 'https://qdcdhxlguuoksfhelywt.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkY2RoeGxndXVva3NmaGVseXd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE2NDUxOTksImV4cCI6MjA2NzIyMTE5OX0.Cbb0JU__rDuKiAL0lwqwqCxok-HfilpIz8LOl9jP9iM';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// --- 新增：通用信息框函数 ---
+function showToast(message, duration = 3000) {
+    // 移除已存在的信息框
+    const existingToast = document.querySelector('.toast-notification');
+    if (existingToast) {
+        existingToast.remove();
+    }
+
+    // 创建新的信息框元素
+    const toast = document.createElement('div');
+    toast.className = 'toast-notification';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+
+    // 触发显示动画
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 10); // 短暂延迟确保过渡效果生效
+
+    // 设置超时自动隐藏
+    setTimeout(() => {
+        toast.classList.remove('show');
+        // 在CSS过渡动画结束后从DOM中移除元素
+        toast.addEventListener('transitionend', () => toast.remove());
+    }, duration);
+}
+
 // --- 全局状态 ---
 let currentScheduleData = [];
 let timelineStartHour = 0;
@@ -16,7 +43,7 @@ let selectedTeamId = null;
 document.addEventListener('DOMContentLoaded', async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-        alert('请先登录！');
+        showToast('请先登录！');
         return;
     }
     currentUser = user;
@@ -213,7 +240,7 @@ async function createScheduleInDb(newItem) {
 
     if (error) {
         console.error('创建排班失败:', error);
-        alert('创建失败，请稍后重试。');
+        showToast('创建失败，请稍后重试。');
     } else {
         console.log('创建成功:', data);
         currentScheduleData.push(data);
@@ -252,7 +279,7 @@ function syncScroll() {
 async function fetchScheduleData() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-        alert('无法验证用户信息，请重新登录。');
+        showToast('无法验证用户信息，请重新登录。');
         // 在实际应用中，可能会重定向到登录页
         return null;
     }
@@ -451,7 +478,7 @@ async function updateScheduleTask(id, newTask) {
 
     if (error) {
         console.error('更新任务描述失败:', error);
-        alert('更新任务描述失败，请稍后重试。');
+        showToast('更新任务描述失败，请稍后重试。');
     } else {
         console.log('任务描述更新成功。');
         const itemIndex = currentScheduleData.findIndex(item => item.id == id);
@@ -480,7 +507,7 @@ async function handleDeleteItem(e) {
 
     if (error) {
         console.error('删除失败:', error);
-        alert('删除失败，请稍后重试。');
+        showToast('删除失败，请稍后重试。');
     } else {
         console.log('删除成功。');
         // 从UI和缓存中移除
@@ -714,7 +741,7 @@ async function saveAndRerenderTimeline() {
     let newEnd = parseInt(endInput.value, 10);
 
     if (isNaN(newStart) || isNaN(newEnd) || newStart >= newEnd || newStart < 0 || newEnd > 48) {
-        alert('请输入有效的起止时间 (0-48)，且开始时间必须小于结束时间。');
+        showToast('请输入有效的起止时间 (0-48)，且开始时间必须小于结束时间。');
         return;
     }
     
@@ -755,7 +782,7 @@ async function updateScheduleTime(id, newStartTime, newEndTime, newOwnerId) {
 
     if (error) {
         console.error('更新排班失败:', error);
-        alert('更新失败，请刷新页面后重试。');
+        showToast('更新失败，请刷新页面后重试。');
     } else {
         console.log('更新成功:', data);
         const itemIndex = currentScheduleData.findIndex(item => item.id == id);
