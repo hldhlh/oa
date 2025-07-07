@@ -30,37 +30,30 @@ const elements = {
     registerForm: document.getElementById('register-form'),
     toggleToRegister: document.getElementById('toggle-to-register'),
     toggleToLogin: document.getElementById('toggle-to-login'),
-    toast: document.getElementById('toast-notification'),
     inputs: document.querySelectorAll('#login-form input, #register-form input'),
 };
 
-let toastTimeout; // 用于存储 setTimeout 的 ID
-
 /**
- * 显示浮动提示
- * @param {string} text - 要显示的消息文本
+ * 通用消息提示函数
+ * @param {string} message - 要显示的消息
+ * @param {number} [duration=3000] - 显示时长 (毫秒)
  */
-function showToast(text) {
-    const { toast } = elements;
-    
-    clearTimeout(toastTimeout); // 如果已有提示，则清除旧的计时器
-
-    toast.textContent = text;
-    toast.classList.add('show');
-
-    // 3秒后自动隐藏
-    toastTimeout = setTimeout(() => {
+function showMesg(message, duration = 3000) {
+    const existingToast = document.querySelector('.toast-notification');
+    if (existingToast) {
+        existingToast.remove();
+    }
+    const toast = document.createElement('div');
+    toast.className = 'toast-notification';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 10);
+    setTimeout(() => {
         toast.classList.remove('show');
-    }, 3000);
-}
-
-/**
- * 隐藏浮动提示
- */
-function hideToast() {
-    const { toast } = elements;
-    clearTimeout(toastTimeout);
-    toast.classList.remove('show');
+        toast.addEventListener('transitionend', () => toast.remove());
+    }, duration);
 }
 
 /**
@@ -89,16 +82,15 @@ function updateAuthView(view) {
  */
 async function handleLogin(event) {
     event.preventDefault();
-    hideToast(); // 开始操作前隐藏旧消息
     const email = elements.loginForm.email.value;
     const password = elements.loginForm.password.value;
 
     const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-        showToast(`登录失败: ${error.message}`);
+        showMesg(`登录失败: ${error.message}`);
     } else {
-        showToast('登录成功！即将跳转到主页...');
+        showMesg('登录成功！即将跳转到主页...');
         setTimeout(() => {
             window.location.href = 'main.html';
         }, 1500); // 延迟1.5秒以便用户看到消息
@@ -111,27 +103,26 @@ async function handleLogin(event) {
  */
 async function handleRegister(event) {
     event.preventDefault();
-    hideToast(); // 开始操作前隐藏旧消息
     const email = elements.registerForm.email.value;
     const password = elements.registerForm.password.value;
     const confirmPassword = elements.registerForm['confirm-password'].value;
 
     if (password !== confirmPassword) {
-        showToast('两次输入的密码不匹配，请重新输入。');
+        showMesg('两次输入的密码不匹配，请重新输入。');
         return;
     }
     
     if (password.length < 6) {
-        showToast('密码长度不能少于6位。');
+        showMesg('密码长度不能少于6位。');
         return;
     }
 
     const { data, error } = await _supabase.auth.signUp({ email, password });
 
     if (error) {
-        showToast(`注册失败: ${error.message}`);
+        showMesg(`注册失败: ${error.message}`);
     } else {
-        showToast('注册成功！现在可以返回登录了。');
+        showMesg('注册成功！现在可以返回登录了。');
         setTimeout(() => {
             updateAuthView('login'); // 切换回登录视图
             elements.loginForm.email.value = email; // 自动填充邮箱
@@ -157,7 +148,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 用户开始输入时，隐藏消息
     elements.inputs.forEach(input => {
-        input.addEventListener('focus', hideToast);
+        input.addEventListener('focus', () => {
+            // No need to hide toast manually, it auto-dismisses.
+        });
     });
 
     // 初始视图为登录

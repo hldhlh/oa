@@ -4,7 +4,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // --- 新增：通用信息框函数 ---
-function showToast(message, duration = 3000) {
+function showMesg(message, duration = 3000) {
     // 移除已存在的信息框
     const existingToast = document.querySelector('.toast-notification');
     if (existingToast) {
@@ -43,7 +43,7 @@ let selectedTeamId = null;
 document.addEventListener('DOMContentLoaded', async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-        showToast('请先登录！');
+        showMesg('请先登录！');
         return;
     }
     currentUser = user;
@@ -93,13 +93,17 @@ async function initializeTimeline() {
     const selectedTeam = currentTeams.find(t => t.id == selectedTeamId);
     generateTimeLanes(selectedTeam.members, timelineStartHour, timelineEndHour);
 
-    const { data, error } = await supabase.rpc('get_schedules_for_team', { team_id: selectedTeamId });
+    const { data, error } = await supabase
+        .from('schedules')
+        .select('*')
+        .eq('team_id', selectedTeamId);
     
     if (error) {
         console.error('获取团队排班失败', error);
         return;
     }
-    renderScheduleItems(data || [], timelineStartHour);
+    currentScheduleData = data || []; // Update local cache
+    renderScheduleItems(currentScheduleData, timelineStartHour);
     syncScroll();
 }
 
@@ -138,37 +142,119 @@ function setupEventListeners() {
 
 function showContextMenu(e) {
     e.preventDefault();
-    e.stopPropagation(); // 关键：阻止事件冒泡到window，防止触发全局点击监听器
-
-    // 在显示新菜单前，先隐藏任何可能已存在的菜单
-    hideContextMenu();
+    e.stopPropagation();
 
     const contextMenu = document.getElementById('timeline-context-menu');
-    
-    // 从事件目标上找到最近的 lane-body-content-wrapper，然后是 lane
-    const laneBodyWrapper = e.currentTarget;
-    const lane = laneBodyWrapper.closest('.lane');
-    if (!lane) return; // 如果找不到lane，则不显示菜单
+    hideContextMenu(); // Hide any previous menu
 
-    const startHour = calculateHourFromClick(e);
-    const targetUserId = lane.dataset.userId;
+    const target = e.target;
+    const isItemClick = target.closest('.schedule-item');
 
-    // 存储数据到菜单
-    contextMenu.dataset.userId = targetUserId;
-    contextMenu.dataset.startHour = startHour;
+    // Reset all actions
+    contextMenu.querySelectorAll('li').forEach(li => li.style.display = 'none');
 
-    // 定位并显示菜单
+    if (isItemClick) {
+        const itemElement = target.closest('.schedule-item');
+        const itemId = itemElement.dataset.id;
+        const itemData = findItemDataById(itemId);
+        
+        contextMenu.dataset.itemId = itemId;
+
+        // Show item-specific actions
+        contextMenu.querySelectorAll('.ctx-item-action').forEach(li => li.style.display = 'block');
+        
+        // Dynamically show/hide type change options
+        const changeToWork = contextMenu.querySelector('#ctx-change-to-work');
+        const changeToBreak = contextMenu.querySelector('#ctx-change-to-break');
+        if (itemData.type === 'break') {
+            changeToWork.style.display = 'block';
+            changeToBreak.style.display = 'none';
+        } else { // 'work' or undefined
+            changeToWork.style.display = 'none';
+            changeToBreak.style.display = 'block';
+        }
+
+    } else {
+        const laneBodyWrapper = e.currentTarget;
+        const lane = laneBodyWrapper.closest('.lane');
+        if (!lane) return;
+
+        const startHour = calculateHourFromClick(e);
+        const targetUserId = lane.dataset.userId;
+
+        contextMenu.dataset.userId = targetUserId;
+        contextMenu.dataset.startHour = startHour;
+        
+        // Show lane-specific actions
+        contextMenu.querySelectorAll('.ctx-lane-action').forEach(li => li.style.display = 'block');
+    }
+
     contextMenu.style.left = `${e.clientX}px`;
     contextMenu.style.top = `${e.clientY}px`;
-    contextMenu.style.display = 'block'; // 先设为block，才能获取尺寸
+    contextMenu.style.display = 'block';
     contextMenu.classList.add('visible');
+    
+    bindContextMenuActions();
+}
 
-    // 为菜单项绑定事件
-    const addItemBtn = document.getElementById('add-schedule-item-ctx');
-    addItemBtn.onclick = () => {
-        handleCreateNewItemFromContext();
-        hideContextMenu();
-    };
+function bindContextMenuActions() {
+    // Unbind previous onclicks to prevent multiple triggers
+    document.getElementById('ctx-add-work').onclick = null;
+    document.getElementById('ctx-add-break').onclick = null;
+    document.getElementById('ctx-delete-item').onclick = null;
+    document.getElementById('ctx-change-to-work').onclick = null;
+    document.getElementById('ctx-change-to-break').onclick = null;
+
+    document.getElementById('ctx-add-work').onclick = () => handleAddItem('work');
+    document.getElementById('ctx-add-break').onclick = () => handleAddItem('break');
+    document.getElementById('ctx-delete-item').onclick = () => handleDeleteContext();
+    document.getElementById('ctx-change-to-work').onclick = () => handleUpdateType('work');
+    document.getElementById('ctx-change-to-break').onclick = () => handleUpdateType('break');
+}
+
+function handleAddItem(type) {
+    const contextMenu = document.getElementById('timeline-context-menu');
+    const targetUserId = contextMenu.dataset.userId;
+    const startHour = parseFloat(contextMenu.dataset.startHour);
+    createScheduleItemAt(targetUserId, startHour, type);
+    hideContextMenu();
+}
+
+function handleDeleteContext() {
+    const contextMenu = document.getElementById('timeline-context-menu');
+    const itemId = contextMenu.dataset.itemId;
+    if (itemId) {
+        if (confirm('确定要删除这个排班吗？')) {
+            deleteScheduleItem(itemId);
+        }
+    }
+    hideContextMenu();
+}
+
+async function handleUpdateType(newType) {
+    const contextMenu = document.getElementById('timeline-context-menu');
+    const itemId = contextMenu.dataset.itemId;
+    
+    const { data, error } = await supabase
+        .from('schedules')
+        .update({ type: newType })
+        .eq('id', itemId)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('更新类型失败:', error);
+        showMesg('更新失败');
+    } else {
+        showMesg('类型已更新');
+        // Update local data and re-render
+        const index = currentScheduleData.findIndex(item => item.id == itemId);
+        if (index !== -1) {
+            currentScheduleData[index] = data;
+            renderScheduleItems(currentScheduleData, timelineStartHour);
+        }
+    }
+    hideContextMenu();
 }
 
 function hideContextMenu() {
@@ -206,7 +292,7 @@ function calculateHourFromClick(e) {
     return (startPixel / PIXELS_PER_HOUR) + timelineStartHour;
 }
 
-async function createScheduleItemAt(userId, startHour) {
+async function createScheduleItemAt(userId, startHour, type = 'work') {
     if (!userId || isNaN(startHour)) return;
 
     const today = new Date();
@@ -217,30 +303,28 @@ async function createScheduleItemAt(userId, startHour) {
         user_id: userId,
         start_time: startTime.toISOString(),
         end_time: endTime.toISOString(),
-        task_description: '新任务'
+        task_description: type === 'work' ? '工作班次' : '休息时间',
+        type: type
     };
 
     await createScheduleInDb(newItem);
 }
 
-async function handleCreateNewItemFromContext() {
-    const contextMenu = document.getElementById('timeline-context-menu');
-    const targetUserId = contextMenu.dataset.userId;
-    const startHour = parseFloat(contextMenu.dataset.startHour);
-    await createScheduleItemAt(targetUserId, startHour);
-}
-
 async function createScheduleInDb(newItem) {
     console.log('正在创建新排班...');
+
+    // Add the selected team_id to the new item before insertion.
+    const itemToInsert = { ...newItem, team_id: selectedTeamId };
+
     const { data, error } = await supabase
         .from('schedules')
-        .insert(newItem) // 修正：直接使用传入的newItem，它已包含正确的user_id
+        .insert(itemToInsert)
         .select()
         .single();
 
     if (error) {
         console.error('创建排班失败:', error);
-        showToast('创建失败，请稍后重试。');
+        showMesg('创建失败，请稍后重试。');
     } else {
         console.log('创建成功:', data);
         currentScheduleData.push(data);
@@ -279,7 +363,7 @@ function syncScroll() {
 async function fetchScheduleData() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-        showToast('无法验证用户信息，请重新登录。');
+        showMesg('无法验证用户信息，请重新登录。');
         // 在实际应用中，可能会重定向到登录页
         return null;
     }
@@ -317,7 +401,7 @@ function generateTimeLanes(members, start, end) {
 
         lane.innerHTML = `
             <div class="lane-header">
-                <span>${member.email}</span>
+                <span>${member.full_name || member.email}</span>
             </div>
             <div class="lane-body">
                 <div class="lane-body-content-wrapper" style="width: ${timelineWidth}px;"></div>
@@ -335,6 +419,16 @@ function generateTimeLanes(members, start, end) {
 function generateTimeTicks(start, end, width) {
     const timelineHeader = document.getElementById('timeline-header');
     timelineHeader.innerHTML = '';
+
+    // --- 新增：创建与 lane-header 等宽的空白占位符 ---
+    const headerSpacer = document.createElement('div');
+    headerSpacer.className = 'lane-header-spacer';
+    headerSpacer.style.width = '150px'; // 与 .lane-header 宽度一致
+    headerSpacer.style.flexShrink = '0'; // 防止缩放
+    headerSpacer.style.borderRight = '1px solid #282828'; // 保持竖线对齐
+    timelineHeader.appendChild(headerSpacer);
+    // --- 结束新增 ---
+
     const ticksContainer = document.createElement('div');
     ticksContainer.className = 'ticks-container';
     ticksContainer.style.width = `${width}px`;
@@ -361,54 +455,65 @@ function generateTimeTicks(start, end, width) {
  * @param {Array} items - 排班数据数组
  */
 function renderScheduleItems(items, timelineStart) {
-    // 先清空所有泳道
-    document.querySelectorAll('.lane-body-content-wrapper').forEach(w => w.innerHTML = '');
+    // 只清空旧的排班条目，而不是整个泳道内容
+    document.querySelectorAll('.schedule-item').forEach(item => item.remove());
+
+    if (!items) return;
 
     items.forEach(item => {
-        const laneBody = document.querySelector(`.lane[data-user-id="${item.user_id}"] .lane-body-content-wrapper`);
-        if (!laneBody) return; // 如果找不到对应用户的泳道，则跳过
+        const lane = document.querySelector(`.lane[data-user-id="${item.user_id}"] .lane-body-content-wrapper`);
+        if (!lane) return;
 
-        const itemElement = document.createElement('div');
-        itemElement.className = 'schedule-item';
-        itemElement.textContent = item.task_description;
-        itemElement.dataset.itemId = item.id; // 存储ID以便后续更新
+        const itemEl = document.createElement('div');
+        itemEl.className = 'schedule-item';
+        itemEl.dataset.id = item.id;
+        
+        // Add class based on item type for styling
+        if (item.type === 'break') {
+            itemEl.classList.add('item-break');
+        } else {
+            itemEl.classList.add('item-work');
+        }
 
-        const startTime = new Date(item.start_time);
-        const endTime = new Date(item.end_time);
+        // Attach context menu listener to the item itself
+        itemEl.addEventListener('contextmenu', showContextMenu);
+
+        const start = new Date(item.start_time);
+        const end = new Date(item.end_time);
 
         // 使用毫秒数差来精确计算跨天时长
-        const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+        const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
 
-        const startHour = startTime.getHours() + startTime.getMinutes() / 60;
+        const startHour = start.getHours() + start.getMinutes() / 60;
         
         // 关键改动：位置相对于时间轴起点
         const left = (startHour - timelineStart) * PIXELS_PER_HOUR;
         const width = durationHours * PIXELS_PER_HOUR;
 
-        if (itemElement.contains(document.activeElement)) return;
+        if (itemEl.contains(document.activeElement)) return;
         
         // 只渲染在可视范围内的条目 (可以加一个 buffer)
         if (endHour > timelineStart && startHour < timelineEndHour) {
-            itemElement.style.left = `${left}px`;
-            itemElement.style.width = `${width}px`;
+            itemEl.style.left = `${left}px`;
+            itemEl.style.width = `${width}px`;
 
             // 创建删除按钮
             const deleteBtn = document.createElement('span');
             deleteBtn.className = 'delete-btn';
             deleteBtn.innerHTML = '&times;'; // "X" 符号
             deleteBtn.addEventListener('click', handleDeleteItem);
-            itemElement.appendChild(deleteBtn);
+            itemEl.appendChild(deleteBtn);
 
             // 创建可编辑的文本区域
             const textSpan = document.createElement('span');
             textSpan.className = 'item-text';
             textSpan.textContent = item.task_description;
-            itemElement.appendChild(textSpan);
+            itemEl.appendChild(textSpan);
 
             // 单击进入编辑模式
-            itemElement.addEventListener('click', (e) => {
+            itemEl.addEventListener('click', (e) => {
                 // 防止拖拽时触发编辑
-                if (itemElement.classList.contains('dragging') || itemElement.classList.contains('resizing')) return;
+                if (itemEl.classList.contains('dragging') || itemEl.classList.contains('resizing')) return;
                 // 防止点击删除按钮或把手时触发
                 if (e.target.classList.contains('delete-btn') || e.target.classList.contains('resize-handle')) return;
                 
@@ -418,18 +523,18 @@ function renderScheduleItems(items, timelineStart) {
             // 创建调整大小的把手
             const leftHandle = document.createElement('div');
             leftHandle.className = 'resize-handle left';
-            itemElement.appendChild(leftHandle);
+            itemEl.appendChild(leftHandle);
 
             const rightHandle = document.createElement('div');
             rightHandle.className = 'resize-handle right';
-            itemElement.appendChild(rightHandle);
+            itemEl.appendChild(rightHandle);
 
             // 为拖拽和调整大小添加事件监听器
-            itemElement.addEventListener('mousedown', handleDragStart);
+            itemEl.addEventListener('mousedown', handleDragStart);
             leftHandle.addEventListener('mousedown', handleResizeStart);
             rightHandle.addEventListener('mousedown', handleResizeStart);
 
-            laneBody.appendChild(itemElement);
+            lane.appendChild(itemEl);
         }
     });
 }
@@ -478,7 +583,7 @@ async function updateScheduleTask(id, newTask) {
 
     if (error) {
         console.error('更新任务描述失败:', error);
-        showToast('更新任务描述失败，请稍后重试。');
+        showMesg('更新任务描述失败，请稍后重试。');
     } else {
         console.log('任务描述更新成功。');
         const itemIndex = currentScheduleData.findIndex(item => item.id == id);
@@ -491,13 +596,15 @@ async function updateScheduleTask(id, newTask) {
 async function handleDeleteItem(e) {
     e.stopPropagation(); // 防止触发父元素的其他事件
 
-    if (!confirm('确定要删除这个排班吗？')) {
-        return;
-    }
-
     const itemElement = e.currentTarget.parentElement;
-    const itemId = itemElement.dataset.itemId;
+    const itemId = itemElement.dataset.id;
 
+    if (itemId && confirm('确定要删除这个排班吗？')) {
+        await deleteScheduleItem(itemId);
+    }
+}
+
+async function deleteScheduleItem(itemId) {
     console.log(`正在删除 ID: ${itemId} 的排班...`);
 
     const { error } = await supabase
@@ -507,12 +614,16 @@ async function handleDeleteItem(e) {
 
     if (error) {
         console.error('删除失败:', error);
-        showToast('删除失败，请稍后重试。');
+        showMesg('删除失败，请稍后重试。');
     } else {
         console.log('删除成功。');
         // 从UI和缓存中移除
-        itemElement.remove();
+        const itemElement = document.querySelector(`.schedule-item[data-id="${itemId}"]`);
+        if (itemElement) {
+            itemElement.remove();
+        }
         currentScheduleData = currentScheduleData.filter(item => item.id != itemId);
+        showMesg('排班已删除。');
     }
 }
 
@@ -573,7 +684,7 @@ function handleResizeStart(e) {
         const newStartHour = (finalLeft / PIXELS_PER_HOUR) + timelineStartHour;
         const newEndHour = ((finalLeft + finalWidth) / PIXELS_PER_HOUR) + timelineStartHour;
 
-        const itemId = itemElement.dataset.itemId;
+        const itemId = itemElement.dataset.id;
         const itemData = findItemDataById(itemId);
         if (!itemData) return;
 
@@ -652,7 +763,7 @@ function handleDragStart(e) {
         // 关键改动：计算时间要加上起点
         const newStartHour = (finalLeft / PIXELS_PER_HOUR) + timelineStartHour;
 
-        const itemId = itemElement.dataset.itemId;
+        const itemId = itemElement.dataset.id;
         
         // 我们需要原始的 start_time 和 end_time 来计算时长
         // (这里可以从一个全局变量或元素的其他data属性获取，暂时先用一个假想的函数)
@@ -741,7 +852,7 @@ async function saveAndRerenderTimeline() {
     let newEnd = parseInt(endInput.value, 10);
 
     if (isNaN(newStart) || isNaN(newEnd) || newStart >= newEnd || newStart < 0 || newEnd > 48) {
-        showToast('请输入有效的起止时间 (0-48)，且开始时间必须小于结束时间。');
+        showMesg('请输入有效的起止时间 (0-48)，且开始时间必须小于结束时间。');
         return;
     }
     
@@ -756,7 +867,7 @@ async function saveAndRerenderTimeline() {
 
 // --- 辅助函数 ---
 function findItemDataById(id) {
-    // 使用 '==' 是为了处理字符串和数字ID的比较
+    // id可能是字符串，而currentScheduleData中的id可能是数字，用==进行宽松比较
     return currentScheduleData.find(item => item.id == id);
 }
 
@@ -782,7 +893,7 @@ async function updateScheduleTime(id, newStartTime, newEndTime, newOwnerId) {
 
     if (error) {
         console.error('更新排班失败:', error);
-        showToast('更新失败，请刷新页面后重试。');
+        showMesg('更新失败，请刷新页面后重试。');
     } else {
         console.log('更新成功:', data);
         const itemIndex = currentScheduleData.findIndex(item => item.id == id);

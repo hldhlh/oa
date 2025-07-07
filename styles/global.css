@@ -112,7 +112,7 @@ button {
     border-radius: var(--border-radius);
 }
 
-#toast-notification {
+.toast-notification {
     position: fixed;
     top: 20px;
     left: 50%;
@@ -121,19 +121,20 @@ button {
     color: var(--primary-contrast);
     padding: 1rem 1.5rem;
     border-radius: var(--border-radius);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
     z-index: 1000;
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 500;
+    text-align: center;
     opacity: 0;
-    visibility: hidden;
-    transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s ease, visibility 0.4s;
+    transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s ease;
+    pointer-events: none;
 }
 
-#toast-notification.show {
-    transform: translate(-50%, 0);
+.toast-notification.show {
     opacity: 1;
-    visibility: visible;
+    transform: translate(-50%, 0);
+    pointer-events: auto;
 }
 
 button:hover {
@@ -196,4 +197,155 @@ html, body {
     width: 100%;
     height: 100%;
     border: none; /* Clean look */
+}
+
+/* 6. Confirmation Modal Styles */
+.confirm-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.confirm-modal-content {
+    background-color: var(--primary-color);
+    color: var(--primary-contrast);
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    transform: scale(0.95);
+    transition: transform 0.2s ease;
+}
+
+.confirm-modal-overlay.visible {
+    opacity: 1;
+}
+
+.confirm-modal-overlay.visible .confirm-modal-content {
+    transform: scale(1);
+}
+
+.confirm-modal-content p {
+    margin-bottom: 1.5rem;
+    font-size: 1.1rem;
+    line-height: 1.5;
+}
+
+.confirm-modal-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.confirm-modal-buttons button {
+    width: auto;
+    flex: 1;
+    padding: 0.75rem 1rem;
+    font-weight: 500;
+}
+
+.confirm-modal-buttons .btn-confirm {
+    background-color: #e53e3e; /* A dangerous action color */
+    color: white;
+}
+.confirm-modal-buttons .btn-confirm:hover {
+    background-color: #c53030;
+}
+
+.confirm-modal-buttons .btn-cancel {
+    background-color: var(--secondary-background);
+    color: var(--text-color);
+}
+.confirm-modal-buttons .btn-cancel:hover {
+    background-color: #e2e8f0;
+}
+
+/* 9. Global Message Box */
+.mesg-box {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.8rem 1.5rem;
+    border-radius: var(--border-radius);
+    color: var(--primary-contrast);
+    background-color: var(--primary-color);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    z-index: 9999;
+    font-size: 1rem;
+    opacity: 0;
+    transition: opacity 0.3s ease, top 0.3s ease;
+}
+
+.mesg-box.visible {
+    opacity: 1;
+    top: 40px;
+}
+
+/* Message types */
+.mesg-box.success {
+    background-color: #28a745; /* Green */
+}
+
+.mesg-box.error {
+    background-color: #dc3545; /* Red */
+}
+
+.mesg-box.info {
+    background-color: #17a2b8; /* Blue */
+}
+
+/* --- Header & Nav layout --- */
+.main-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background-color: var(--background-color);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.nav-menu {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.main-nav {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.user-menu {
+    display: flex;
+    align-items: center;
+    gap: 1rem; /* 为用户名和登出按钮之间提供一些间距 */
+}
+
+.user-profile-link {
+    white-space: nowrap; /* 防止 "欢迎, xxx" 文本自身换行 */
+}
+
+.btn-logout {
+    width: auto; /* 覆盖 button 的全局 width: 100% */
+    padding: 0.5rem 1rem;
+}
+
+/* 移动端样式 */
+@media (max-width: 768px) {
+    .nav-menu {
+        display: none; /* ... */
+    }
+    /* ...其他移动端样式... */
 }
