@@ -55,6 +55,10 @@
 
     <div id="timeline-context-menu" class="context-menu" style="display: none;">
         <ul>
+            <!-- 在时间轴表头右键时显示 -->
+            <li id="ctx-add-work-at-time" class="ctx-header-action">在此时间添加工作班次</li>
+            <li id="ctx-add-break-at-time" class="ctx-header-action">在此时间添加休息时间</li>
+            <li class="ctx-header-action separator"></li>
             <!-- 在泳道空白处右键时显示 -->
             <li id="ctx-add-work" class="ctx-lane-action">添加工作班次</li>
             <li id="ctx-add-break" class="ctx-lane-action">添加休息时间</li>
@@ -68,6 +72,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="script.js"></script>
+    <!-- <script src="script.js"></script> -->
+    <script type="module" src="main.js"></script>
 </body>
 </html> 
