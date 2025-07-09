@@ -5,6 +5,49 @@ import * as api from './api.js';
 import * as ui from './ui.js';
 import { getState, setState, subscribe } from './state.js';
 
+// 新增：创建全局拖动状态对象，以便在父窗口和iframe之间共享
+window.dragStateHandler = {
+    dragState: {
+        isDragging: false,
+        isResizing: false,
+        currentItem: null,
+        initialX: 0,
+        initialY: 0,
+        initialLeft: 0,
+        initialWidth: 0,
+        resizeDirection: null,
+        laneElement: null,
+        originalUserId: null,
+        newUserId: null,
+        elementId: null
+    },
+    // 获取当前拖动状态
+    getState() {
+        return this.dragState;
+    },
+    // 更新拖动状态
+    setState(newState) {
+        this.dragState = { ...this.dragState, ...newState };
+    },
+    // 重置拖动状态
+    resetState() {
+        this.dragState = {
+            isDragging: false,
+            isResizing: false,
+            currentItem: null,
+            initialX: 0,
+            initialY: 0,
+            initialLeft: 0,
+            initialWidth: 0,
+            resizeDirection: null,
+            laneElement: null,
+            originalUserId: null,
+            newUserId: null,
+            elementId: null
+        };
+    }
+};
+
 document.addEventListener('DOMContentLoaded', async () => {
     console.log("New modular script loaded!");
     
@@ -12,6 +55,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     const isInIframe = window.parent !== window;
     console.log(`当前脚本运行环境: ${isInIframe ? 'iframe' : '主窗口'}`);
 
+    // 初始化iframe与父窗口通信机制
+    setupIframeParentCommunication();
+
+    // 如果在iframe中，将必要的函数共享给父窗口
+    if (isInIframe) {
+        try {
+            // 共享状态获取和修改函数
+            window.parent.iframeGetState = getState;
+            window.parent.iframeSetState = setState;
+            // 共享拖动状态处理器
+            window.parent.iframeDragStateHandler = window.dragStateHandler;
+            // 其他可能需要的函数
+            window.parent.iframeUI = ui;
+            
+            console.log('成功将函数共享给父窗口');
+        } catch (err) {
+            console.error('共享函数到父窗口失败:', err);
+        }
+    }
+    
     // 初始化UI元素
     ui.initElements();
 
@@ -745,7 +808,36 @@ function setupInteractionEvents() {
     console.log('设置排班项目交互事件...');
     
     // 获取正确的文档对象
-    const doc = window.parent !== window ? window.parent.document : document;
+    const isInIframe = window.parent !== window;
+    const doc = isInIframe ? window.parent.document : document;
+    
+    // 获取iframe位置（如果在iframe中）
+    let iframeRect = null;
+    if (isInIframe && window.frameElement) {
+        try {
+            iframeRect = window.frameElement.getBoundingClientRect();
+            console.log('成功获取iframe位置信息:', iframeRect);
+        } catch (err) {
+            console.error('无法获取iframe位置信息:', err);
+        }
+    }
+    
+    // 添加转换坐标的辅助函数
+    const convertMousePosition = (e) => {
+        if (!isInIframe || !window.frameElement) return { x: e.clientX, y: e.clientY };
+        
+        try {
+            // 获取最新的iframe位置信息
+            const rect = window.frameElement.getBoundingClientRect();
+            return {
+                x: e.clientX + rect.left,
+                y: e.clientY + rect.top
+            };
+        } catch (err) {
+            console.error("无法访问iframe属性，可能是跨域问题:", err);
+            return { x: e.clientX, y: e.clientY };
+        }
+    };
     
     // 使用事件委托，在容器上监听事件
     const timelineContainer = doc.getElementById('timeline-container') || document.getElementById('timeline-container');
@@ -754,248 +846,70 @@ function setupInteractionEvents() {
         return;
     }
     
-    // 存储拖动和调整大小的状态
-    let dragState = {
-        isDragging: false,
-        isResizing: false,
-        currentItem: null,
-        initialX: 0,
-        initialY: 0, // 新增：记录初始Y坐标
-        initialLeft: 0,
-        initialWidth: 0,
-        resizeDirection: null,
-        initialTime: null,
-        laneElement: null,
-        originalUserId: null
-    };
-    
-    // 鼠标按下事件 - 开始拖动或调整大小
-    timelineContainer.addEventListener('mousedown', (e) => {
-        // 检查是否点击了调整大小的把手
-        const resizeHandle = e.target.closest('.resize-handle');
-        if (resizeHandle) {
-            handleResizeStart(e, resizeHandle);
-            return;
-        }
-        
-        // 检查是否点击了排班项目
-        const scheduleItem = e.target.closest('.schedule-item');
-        if (scheduleItem && !e.target.closest('.item-text')) {
-            handleDragStart(e, scheduleItem);
-        }
-    });
-    
-    // 鼠标移动事件 - 拖动或调整大小
-    doc.addEventListener('mousemove', (e) => {
-        if (!dragState.isDragging && !dragState.isResizing) return;
-        
-        e.preventDefault(); // 防止选择文本
-        
-        const { pixelsPerHour, timelineStartHour } = getState();
-        
-        if (dragState.isResizing) {
-            // 调整大小逻辑
-            const item = dragState.currentItem;
-            const deltaX = e.clientX - dragState.initialX;
-            
-            if (dragState.resizeDirection === 'right') {
-                // 调整右侧（结束时间）
-                const newWidth = Math.max(50, dragState.initialWidth + deltaX); // 最小宽度为50px
-                item.style.width = `${newWidth}px`;
-                
-                // 更新调整中的视觉效果
-                item.classList.add('resizing');
-            } else if (dragState.resizeDirection === 'left') {
-                // 调整左侧（开始时间）
-                const newLeft = Math.min(dragState.initialLeft + deltaX, 
-                                        dragState.initialLeft + dragState.initialWidth - 50); // 确保最小宽度为50px
-                const newWidth = dragState.initialLeft + dragState.initialWidth - newLeft;
-                
-                // 更新位置和宽度
-                item.style.left = `${newLeft}px`;
-                item.style.width = `${newWidth}px`;
-                
-                // 更新调整中的视觉效果
-                item.classList.add('resizing');
-            }
-        } else if (dragState.isDragging) {
-            // 拖动逻辑
-            const item = dragState.currentItem;
-            const deltaX = e.clientX - dragState.initialX;
-            const deltaY = e.clientY - (dragState.initialY || dragState.initialX); // 使用initialY或fallback到initialX
-            
-            // 获取时间刻度信息
-            const { pixelsPerHour, snapMinutes } = getState();
-            const snapPixels = (pixelsPerHour / 60) * snapMinutes; // 计算吸附像素值
-            
-            // 计算新的左侧位置，确保不会为负
-            let newLeft = Math.max(0, dragState.initialLeft + deltaX);
-            
-            // 吸附到时间刻度
-            if (snapMinutes > 0) {
-                const snapPosition = Math.round(newLeft / snapPixels) * snapPixels;
-                // 只有当接近吸附点时才吸附
-                if (Math.abs(newLeft - snapPosition) < 10) {
-                    newLeft = snapPosition;
-                }
-            }
-            
-            item.style.left = `${newLeft}px`;
-            
-            // 更新拖动中的视觉效果
-            item.classList.add('dragging');
-            
-            // 检查是否拖动到了不同的泳道
-            if (dragState.laneElement) {
-                const lanes = doc.querySelectorAll('.lane');
-                const mouseY = e.clientY;
-                
-                for (const lane of lanes) {
-                    const rect = lane.getBoundingClientRect();
-                    if (mouseY >= rect.top && mouseY <= rect.bottom) {
-                        // 如果鼠标在这个泳道内
-                        if (lane !== dragState.laneElement) {
-                            // 移动到新泳道
-                            const laneBody = lane.querySelector('.lane-body');
-                            if (laneBody) {
-                                laneBody.appendChild(item);
-                                dragState.laneElement = lane;
-                                
-                                // 更新用户ID（为保存做准备）
-                                dragState.newUserId = lane.dataset.userId;
-                                
-                                // 添加视觉提示
-                                lanes.forEach(l => l.classList.remove('drag-target'));
-                                lane.classList.add('drag-target');
-                            }
-                        }
-                        break;
-                    }
-                }
-            }
-        }
-    });
-    
-    // 鼠标松开事件 - 结束拖动或调整大小
-    doc.addEventListener('mouseup', async (e) => {
-        if (!dragState.isDragging && !dragState.isResizing) return;
-        
-        const item = dragState.currentItem;
-        if (!item) {
-            resetDragState();
+    // 修改：使用全局拖动状态对象
+    window.updateScheduleItemPosition = async function(itemId, newLeft, newWidth) {
+        // 如果正在拖动的项目ID存在
+        if (!itemId) {
+            console.error('缺少项目ID，无法更新位置');
             return;
         }
         
         try {
+            // 1. 获取当前状态信息
             const { pixelsPerHour, timelineStartHour } = getState();
-            const itemId = item.dataset.itemId;
             
-            if (!itemId) {
-                console.error('排班项目缺少ID，无法保存更改');
-                resetDragState();
+            // 2. 根据像素位置计算时间
+            const newStartTime = timelineStartHour + (newLeft / pixelsPerHour);
+            let newDuration = newWidth / pixelsPerHour;
+            
+            // 3. 四舍五入到最接近的时间槽
+            const roundedStartTime = roundToNearestTimeSlot(newStartTime);
+            const roundedEndTime = roundToNearestTimeSlot(newStartTime + newDuration);
+            newDuration = roundedEndTime - roundedStartTime;
+            
+            // 4. 查找项目数据
+            const currentSchedules = getState().schedules || [];
+            const itemData = currentSchedules.find(s => s.id == itemId);
+            
+            if (!itemData) {
+                console.error(`找不到排班项目数据，ID=${itemId}`);
                 return;
             }
             
-            // 更新同步状态
+            // 5. 更新数据库
             ui.updateSyncStatus('syncing');
+            const result = await api.updateScheduleTime(
+                itemId,
+                roundedStartTime,
+                newDuration
+            );
             
-            if (dragState.isResizing) {
-                // 保存调整大小的结果
-                const newWidth = parseFloat(item.style.width);
-                const newLeft = parseFloat(item.style.left);
+            // 6. 更新状态
+            if (result) {
+                // 更新状态，替换修改后的项目
+                setState({
+                    schedules: currentSchedules.map(item => 
+                        item.id == itemId ? result : item
+                    )
+                });
                 
-                // 计算新的开始和结束时间
-                const startHour = timelineStartHour + (newLeft / pixelsPerHour);
-                const durationHours = newWidth / pixelsPerHour;
-                const endHour = startHour + durationHours;
-                
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                
-                const startTime = new Date(today.getTime() + startHour * 3600 * 1000);
-                const endTime = new Date(today.getTime() + endHour * 3600 * 1000);
-                
-                console.log(`调整大小：ID=${itemId}, 新的开始时间=${startTime.toLocaleTimeString()}, 新的结束时间=${endTime.toLocaleTimeString()}`);
-                
-                // 调用API更新时间
-                const result = await api.updateScheduleTime(
-                    itemId, 
-                    startTime.toISOString(), 
-                    endTime.toISOString(),
-                    null // 不改变所有者
-                );
-                
-                if (result) {
-                    // 更新状态
-                    const currentSchedules = getState().schedules || [];
-                    setState({
-                        schedules: currentSchedules.map(schedule => 
-                            schedule.id === parseInt(itemId) ? result : schedule
-                        )
-                    });
-                    
-                    ui.showMesg('时间已更新！');
-                } else {
-                    throw new Error('调整时间失败');
+                ui.updateSyncStatus('synced');
+                // 成功更新后，找到项目元素并更新它的位置和宽度
+                const itemElement = doc.getElementById(`schedule-item-${itemId}`) || 
+                                   document.getElementById(`schedule-item-${itemId}`);
+                if (itemElement) {
+                    itemElement.style.left = `${(roundedStartTime - timelineStartHour) * pixelsPerHour}px`;
+                    itemElement.style.width = `${newDuration * pixelsPerHour}px`;
                 }
-            } else if (dragState.isDragging) {
-                // 保存拖动的结果
-                const newLeft = parseFloat(item.style.left);
-                const startHour = timelineStartHour + (newLeft / pixelsPerHour);
-                
-                // 计算持续时间
-                const width = parseFloat(item.style.width);
-                const durationHours = width / pixelsPerHour;
-                const endHour = startHour + durationHours;
-                
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                
-                const startTime = new Date(today.getTime() + startHour * 3600 * 1000);
-                const endTime = new Date(today.getTime() + endHour * 3600 * 1000);
-                
-                // 确定用户ID（如果发生了变化）
-                const newUserId = dragState.newUserId || dragState.originalUserId;
-                
-                console.log(`拖动：ID=${itemId}, 新的开始时间=${startTime.toLocaleTimeString()}, 新的结束时间=${endTime.toLocaleTimeString()}, 用户ID=${newUserId}`);
-                
-                // 调用API更新时间和所有者
-                const result = await api.updateScheduleTime(
-                    itemId, 
-                    startTime.toISOString(), 
-                    endTime.toISOString(),
-                    newUserId
-                );
-                
-                if (result) {
-                    // 更新状态
-                    const currentSchedules = getState().schedules || [];
-                    setState({
-                        schedules: currentSchedules.map(schedule => 
-                            schedule.id === parseInt(itemId) ? result : schedule
-                        )
-                    });
-                    
-                    ui.showMesg('排班已移动！');
-                } else {
-                    throw new Error('移动排班失败');
-                }
+            } else {
+                throw new Error('更新排班项目时间失败');
             }
-            
-            // 更新同步状态
-            ui.updateSyncStatus('synced');
-        } catch (e) {
-            console.error('保存排班更改失败:', e);
-            ui.showMesg('保存更改失败！');
+        } catch (error) {
+            console.error('保存排班项目位置失败:', error);
+            ui.showMesg('保存排班项目位置失败');
             ui.updateSyncStatus('error');
-            
-            // 重新渲染以恢复原始状态
-            ui.renderAllScheduleItems(getState().schedules);
-        } finally {
-            // 重置拖动状态
-            resetDragState();
         }
-    });
+    };
     
     // 双击事件 - 编辑排班项目描述
     timelineContainer.addEventListener('dblclick', (e) => {
@@ -1011,120 +925,8 @@ function setupInteractionEvents() {
         }
     });
     
-    // 右键菜单编辑事件
-    const editMenuItem = doc.getElementById('ctx-edit-item') || document.getElementById('ctx-edit-item');
-    if (editMenuItem) {
-        editMenuItem.addEventListener('click', () => {
-            // 获取当前点击的排班项目ID
-            const itemId = window.currentClickedItemId;
-            if (!itemId) {
-                console.error('没有存储的排班项目ID，无法编辑');
-                return;
-            }
-            
-            // 查找排班项目元素
-            const itemEl = doc.getElementById(`schedule-item-${itemId}`) || 
-                          document.getElementById(`schedule-item-${itemId}`);
-            
-            if (!itemEl) {
-                console.error(`找不到排班项目元素，ID=${itemId}`);
-                return;
-            }
-            
-            // 查找文本元素
-            const itemText = itemEl.querySelector('.item-text');
-            if (itemText) {
-                makeEditable(itemText, itemId);
-            }
-        });
-    }
-    
-    // 处理调整大小开始
-    function handleResizeStart(e, resizeHandle) {
-        e.preventDefault();
-        
-        const scheduleItem = resizeHandle.closest('.schedule-item');
-        if (!scheduleItem) return;
-        
-        const direction = resizeHandle.classList.contains('right') ? 'right' : 'left';
-        
-        dragState = {
-            isResizing: true,
-            isDragging: false,
-            currentItem: scheduleItem,
-            initialX: e.clientX,
-            initialY: e.clientY, // 记录初始Y坐标
-            initialWidth: scheduleItem.offsetWidth,
-            initialLeft: parseFloat(scheduleItem.style.left) || 0,
-            resizeDirection: direction
-        };
-        
-        // 添加视觉反馈
-        scheduleItem.classList.add('resizing');
-        
-        // 防止文本选择
-        doc.body.style.userSelect = 'none';
-    }
-    
-    // 处理拖动开始
-    function handleDragStart(e, scheduleItem) {
-        e.preventDefault();
-        
-        dragState = {
-            isDragging: true,
-            isResizing: false,
-            currentItem: scheduleItem,
-            initialX: e.clientX,
-            initialY: e.clientY, // 记录初始Y坐标
-            initialLeft: parseFloat(scheduleItem.style.left) || 0,
-            initialWidth: scheduleItem.offsetWidth,
-            laneElement: scheduleItem.closest('.lane'),
-            originalUserId: scheduleItem.closest('.lane')?.dataset.userId
-        };
-        
-        // 添加视觉反馈
-        scheduleItem.classList.add('dragging');
-        
-        // 防止文本选择
-        doc.body.style.userSelect = 'none';
-    }
-    
-    // 重置拖动状态
-    function resetDragState() {
-        if (dragState.currentItem) {
-            dragState.currentItem.classList.remove('dragging', 'resizing');
-        }
-        
-        // 清除所有泳道的高亮状态
-        const doc = window.parent !== window ? window.parent.document : document;
-        doc.querySelectorAll('.lane').forEach(lane => {
-            lane.classList.remove('drag-target');
-        });
-        
-        dragState = {
-            isDragging: false,
-            isResizing: false,
-            currentItem: null,
-            initialX: 0,
-            initialY: 0, // 重置Y坐标
-            initialLeft: 0,
-            initialWidth: 0,
-            resizeDirection: null,
-            laneElement: null,
-            originalUserId: null,
-            newUserId: null
-        };
-        
-        // 恢复文本选择
-        document.body.style.userSelect = '';
-        if (window.parent !== window) {
-            try {
-                window.parent.document.body.style.userSelect = '';
-            } catch (e) {
-                console.error('无法恢复父窗口的文本选择:', e);
-            }
-        }
-    }
+    // 导出全局函数，以便在iframe外调用
+    window.makeEditable = makeEditable;
     
     // 使文本可编辑
     function makeEditable(textSpan, itemId) {
@@ -1154,50 +956,395 @@ function setupInteractionEvents() {
             
             // 如果文本有变化，保存更改
             if (newText !== originalText && newText) {
+                // 更新同步状态为"同步中"
+                ui.updateSyncStatus('syncing');
+                
                 try {
-                    ui.updateSyncStatus('syncing');
-                    
-                    // 调用API更新描述
+                    // 调用API保存更改
                     const result = await api.updateScheduleTask(itemId, newText);
                     
                     if (result) {
-                        // 更新状态
+                        // 更新状态，替换修改后的项目
                         const currentSchedules = getState().schedules || [];
                         setState({
-                            schedules: currentSchedules.map(schedule => 
-                                schedule.id === parseInt(itemId) ? result : schedule
+                            schedules: currentSchedules.map(item => 
+                                item.id == itemId ? result : item
                             )
                         });
                         
+                        // 显示成功消息
                         ui.showMesg('描述已更新！');
                         ui.updateSyncStatus('synced');
                     } else {
                         throw new Error('更新描述失败');
                     }
-                } catch (e) {
-                    console.error('保存描述更改失败:', e);
+                } catch (error) {
+                    console.error('保存描述更改失败:', error);
                     ui.showMesg('保存描述失败！');
                     ui.updateSyncStatus('error');
                     
-                    // 恢复原始文本
+                    // 如果保存失败，恢复原始文本
                     textSpan.textContent = originalText;
                 }
             }
+            
+            // 移除事件监听器
+            input.removeEventListener('blur', saveChanges);
+            input.removeEventListener('keydown', handleKeyDown);
         };
         
-        // 绑定事件
-        input.addEventListener('blur', saveChanges);
-        input.addEventListener('keydown', (e) => {
+        // 处理按键事件
+        const handleKeyDown = (e) => {
             if (e.key === 'Enter') {
-                e.preventDefault();
-                saveChanges();
+                e.preventDefault(); // 防止换行
+                input.blur(); // 触发失去焦点事件
             } else if (e.key === 'Escape') {
-                e.preventDefault();
-                textSpan.textContent = originalText; // 取消编辑，恢复原始文本
+                // 如果按下Escape，恢复原始文本并取消编辑
+                textSpan.textContent = originalText;
+                input.removeEventListener('blur', saveChanges);
+                input.removeEventListener('keydown', handleKeyDown);
+            }
+        };
+        
+        // 添加事件监听器
+        input.addEventListener('blur', saveChanges);
+        input.addEventListener('keydown', handleKeyDown);
+    }
+} 
+
+// 新增：设置iframe与父窗口的通信机制
+function setupIframeParentCommunication() {
+    const isInIframe = window.parent !== window;
+    
+    // 如果当前窗口是iframe
+    if (isInIframe) {
+        console.log('设置iframe与父窗口的通信...');
+        
+        // 监听来自父窗口的消息
+        window.addEventListener('message', handleParentMessage);
+        
+        // 注册mousedown, mousemove, mouseup事件代理函数
+        window.addEventListener('mousedown', (e) => {
+            // 如果点击的是可拖动或可调整大小的元素，则发送消息给父窗口
+            const resizeHandle = e.target.closest('.resize-handle');
+            const scheduleItem = e.target.closest('.schedule-item');
+            
+            if (resizeHandle || (scheduleItem && !e.target.closest('.item-text'))) {
+                // 创建事件数据，以便传递给父窗口
+                const eventData = {
+                    type: resizeHandle ? 'resize-start' : 'drag-start',
+                    clientX: e.clientX,
+                    clientY: e.clientY,
+                    targetId: resizeHandle ? resizeHandle.closest('.schedule-item').id : scheduleItem.id,
+                    resizeDirection: resizeHandle ? (resizeHandle.classList.contains('right') ? 'right' : 'left') : null
+                };
+                
+                // 使用postMessage发送给父窗口
+                postMessageToParent('schedule-event', eventData);
             }
         });
+    } else {
+        // 当前是父窗口，监听来自iframe的消息
+        window.addEventListener('message', handleIframeMessage);
+    }
+}
+
+// 处理来自父窗口的消息
+function handleParentMessage(event) {
+    try {
+        const { type, data } = event.data;
+        
+        if (type === 'parent-drag-update') {
+            // 父窗口通知iframe更新拖动状态
+            handleParentDragUpdate(data);
+        } else if (type === 'parent-resize-update') {
+            // 父窗口通知iframe更新调整大小状态
+            handleParentResizeUpdate(data);
+        } else if (type === 'parent-drag-end' || type === 'parent-resize-end') {
+            // 父窗口通知iframe拖动或调整大小结束
+            handleParentDragOrResizeEnd(data);
+        }
+    } catch (error) {
+        console.error('处理父窗口消息时出错:', error);
+    }
+}
+
+// 处理来自iframe的消息
+function handleIframeMessage(event) {
+    try {
+        const { type, data } = event.data;
+        
+        if (type === 'schedule-event') {
+            // iframe通知父窗口有拖动或调整大小事件发生
+            handleIframeScheduleEvent(data);
+        }
+    } catch (error) {
+        console.error('处理iframe消息时出错:', error);
+    }
+}
+
+// 向父窗口发送消息
+function postMessageToParent(type, data) {
+    if (window.parent !== window) {
+        try {
+            window.parent.postMessage({ type, data }, '*');
+        } catch (error) {
+            console.error('向父窗口发送消息失败:', error);
+        }
+    }
+}
+
+// 向iframe发送消息
+function postMessageToIframe(iframe, type, data) {
+    try {
+        iframe.contentWindow.postMessage({ type, data }, '*');
+    } catch (error) {
+        console.error('向iframe发送消息失败:', error);
+    }
+}
+
+// 处理父窗口拖动更新
+function handleParentDragUpdate(data) {
+    const { itemId, newLeft, dragClass } = data;
+    const scheduleItem = document.getElementById(itemId);
+    
+    if (scheduleItem) {
+        scheduleItem.style.left = `${newLeft}px`;
+        if (dragClass && !scheduleItem.classList.contains(dragClass)) {
+            scheduleItem.classList.add(dragClass);
+        }
+    }
+}
+
+// 处理父窗口调整大小更新
+function handleParentResizeUpdate(data) {
+    const { itemId, newLeft, newWidth, resizeClass } = data;
+    const scheduleItem = document.getElementById(itemId);
+    
+    if (scheduleItem) {
+        if (newLeft !== undefined) {
+            scheduleItem.style.left = `${newLeft}px`;
+        }
+        if (newWidth !== undefined) {
+            scheduleItem.style.width = `${newWidth}px`;
+        }
+        if (resizeClass && !scheduleItem.classList.contains(resizeClass)) {
+            scheduleItem.classList.add(resizeClass);
+        }
+    }
+}
+
+// 处理父窗口拖动或调整大小结束
+function handleParentDragOrResizeEnd(data) {
+    const { itemId, finalLeft, finalWidth } = data;
+    const scheduleItem = document.getElementById(itemId);
+    
+    if (scheduleItem) {
+        if (finalLeft !== undefined) {
+            scheduleItem.style.left = `${finalLeft}px`;
+        }
+        if (finalWidth !== undefined) {
+            scheduleItem.style.width = `${finalWidth}px`;
+        }
+        
+        // 移除所有拖动和调整大小相关的类
+        scheduleItem.classList.remove('dragging', 'resizing');
+        
+        // 如果需要，调用API来保存更改
+        if (data.saveChanges && window.updateScheduleItemPosition) {
+            window.updateScheduleItemPosition(itemId, finalLeft, finalWidth);
+        }
     }
     
-    // 导出makeEditable函数到全局
-    window.makeEditable = makeEditable;
+    // 重置拖动状态
+    window.dragStateHandler.resetState();
+}
+
+// 处理iframe的调度事件
+function handleIframeScheduleEvent(data) {
+    // 这个函数在父窗口中执行，处理来自iframe的事件
+    console.log('父窗口收到iframe的调度事件:', data);
+    
+    const { type, targetId, clientX, clientY, resizeDirection } = data;
+    
+    // 获取iframe元素和位置
+    const iframe = document.getElementById('content-frame');
+    if (!iframe) return;
+    
+    const iframeRect = iframe.getBoundingClientRect();
+    
+    // 转换坐标，从iframe内部坐标转换为父窗口坐标
+    const parentX = clientX + iframeRect.left;
+    const parentY = clientY + iframeRect.top;
+    
+    // 根据事件类型创建并分发事件
+    if (type === 'resize-start') {
+        // 在父窗口中模拟resize-start事件
+        simulateResizeStart(targetId, parentX, parentY, resizeDirection, iframe);
+    } else if (type === 'drag-start') {
+        // 在父窗口中模拟drag-start事件
+        simulateDragStart(targetId, parentX, parentY, iframe);
+    }
+}
+
+// 在父窗口中模拟resize-start事件
+function simulateResizeStart(itemId, parentX, parentY, direction, iframe) {
+    console.log(`模拟调整大小开始: 项目=${itemId}, 方向=${direction}, 坐标=(${parentX}, ${parentY})`);
+    
+    // 获取iframe内的元素信息
+    const iframeScheduleItem = iframe.contentWindow.document.getElementById(itemId);
+    if (!iframeScheduleItem) return;
+    
+    // 获取元素初始位置和尺寸信息
+    const initialLeft = parseFloat(iframeScheduleItem.style.left) || 0;
+    const initialWidth = iframeScheduleItem.offsetWidth;
+    
+    // 更新全局拖动状态
+    window.dragStateHandler.setState({
+        isResizing: true,
+        isDragging: false,
+        currentItem: null, // 父窗口中没有实际元素
+        elementId: itemId,
+        initialX: parentX,
+        initialY: parentY,
+        initialLeft: initialLeft,
+        initialWidth: initialWidth,
+        resizeDirection: direction,
+        iframeElement: iframe
+    });
+    
+    // 添加父窗口的鼠标事件监听器
+    document.addEventListener('mousemove', handleParentMouseMove);
+    document.addEventListener('mouseup', handleParentMouseUp);
+    
+    // 通知iframe元素已开始调整大小
+    postMessageToIframe(iframe, 'parent-resize-update', {
+        itemId: itemId,
+        resizeClass: 'resizing'
+    });
+}
+
+// 在父窗口中模拟drag-start事件
+function simulateDragStart(itemId, parentX, parentY, iframe) {
+    console.log(`模拟拖动开始: 项目=${itemId}, 坐标=(${parentX}, ${parentY})`);
+    
+    // 获取iframe内的元素信息
+    const iframeScheduleItem = iframe.contentWindow.document.getElementById(itemId);
+    if (!iframeScheduleItem) return;
+    
+    // 获取元素初始位置信息
+    const initialLeft = parseFloat(iframeScheduleItem.style.left) || 0;
+    const initialWidth = iframeScheduleItem.offsetWidth;
+    
+    // 更新全局拖动状态
+    window.dragStateHandler.setState({
+        isDragging: true,
+        isResizing: false,
+        currentItem: null, // 父窗口中没有实际元素
+        elementId: itemId,
+        initialX: parentX,
+        initialY: parentY,
+        initialLeft: initialLeft,
+        initialWidth: initialWidth,
+        iframeElement: iframe
+    });
+    
+    // 添加父窗口的鼠标事件监听器
+    document.addEventListener('mousemove', handleParentMouseMove);
+    document.addEventListener('mouseup', handleParentMouseUp);
+    
+    // 通知iframe元素已开始拖动
+    postMessageToIframe(iframe, 'parent-drag-update', {
+        itemId: itemId,
+        dragClass: 'dragging'
+    });
+}
+
+// 处理父窗口中的鼠标移动事件
+function handleParentMouseMove(e) {
+    const dragState = window.dragStateHandler.getState();
+    if (!dragState.isDragging && !dragState.isResizing) return;
+    
+    e.preventDefault(); // 防止选择文本
+    
+    const iframe = dragState.iframeElement;
+    if (!iframe) return;
+    
+    const deltaX = e.clientX - dragState.initialX;
+    
+    if (dragState.isResizing) {
+        // 调整大小逻辑
+        if (dragState.resizeDirection === 'right') {
+            // 调整右侧（结束时间）
+            const newWidth = Math.max(50, dragState.initialWidth + deltaX);
+            
+            // 通知iframe更新元素大小
+            postMessageToIframe(iframe, 'parent-resize-update', {
+                itemId: dragState.elementId,
+                newWidth: newWidth
+            });
+        } else if (dragState.resizeDirection === 'left') {
+            // 调整左侧（开始时间）
+            const newLeft = Math.min(dragState.initialLeft + deltaX,
+                                dragState.initialLeft + dragState.initialWidth - 50);
+            const newWidth = dragState.initialLeft + dragState.initialWidth - newLeft;
+            
+            // 通知iframe更新元素位置和大小
+            postMessageToIframe(iframe, 'parent-resize-update', {
+                itemId: dragState.elementId,
+                newLeft: newLeft,
+                newWidth: newWidth
+            });
+        }
+    } else if (dragState.isDragging) {
+        // 拖动逻辑
+        const newLeft = Math.max(0, dragState.initialLeft + deltaX);
+        
+        // 通知iframe更新元素位置
+        postMessageToIframe(iframe, 'parent-drag-update', {
+            itemId: dragState.elementId,
+            newLeft: newLeft
+        });
+    }
+}
+
+// 处理父窗口中的鼠标松开事件
+function handleParentMouseUp(e) {
+    const dragState = window.dragStateHandler.getState();
+    if (!dragState.isDragging && !dragState.isResizing) return;
+    
+    const iframe = dragState.iframeElement;
+    if (!iframe) return;
+    
+    const deltaX = e.clientX - dragState.initialX;
+    
+    // 计算最终位置和大小
+    let finalData = {};
+    
+    if (dragState.isResizing) {
+        if (dragState.resizeDirection === 'right') {
+            finalData.finalWidth = Math.max(50, dragState.initialWidth + deltaX);
+        } else if (dragState.resizeDirection === 'left') {
+            const newLeft = Math.min(dragState.initialLeft + deltaX,
+                                dragState.initialLeft + dragState.initialWidth - 50);
+            finalData.finalLeft = newLeft;
+            finalData.finalWidth = dragState.initialLeft + dragState.initialWidth - newLeft;
+        }
+    } else if (dragState.isDragging) {
+        finalData.finalLeft = Math.max(0, dragState.initialLeft + deltaX);
+    }
+    
+    // 通知iframe拖动或调整大小结束
+    postMessageToIframe(iframe, dragState.isResizing ? 'parent-resize-end' : 'parent-drag-end', {
+        itemId: dragState.elementId,
+        ...finalData,
+        saveChanges: true
+    });
+    
+    // 移除父窗口的事件监听器
+    document.removeEventListener('mousemove', handleParentMouseMove);
+    document.removeEventListener('mouseup', handleParentMouseUp);
+    
+    // 重置拖动状态
+    window.dragStateHandler.resetState();
 } 

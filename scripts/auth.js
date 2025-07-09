@@ -2,7 +2,7 @@
  * ==============================================================================
  * !! 重要安全警告 !!
  * ==============================================================================
- * 本文件中的 `supabaseUrl` 和 `supabaseKey` (anon key) 是故意暴露在客户端的。
+ * 本文件中的 Supabase 相关配置是故意暴露在客户端的。
  * 这是 Supabase 前端集成的标准做法之一。
  *
  * !!! 整个应用的安全性完全依赖于后端严格的行级安全 (RLS) 策略 !!!
@@ -18,140 +18,114 @@
  * ==============================================================================
  */
 
-// 1. Supabase 客户端初始化
-const supabaseUrl = 'https://qdcdhxlguuoksfhelywt.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkY2RoeGxndXVva3NmaGVseXd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE2NDUxOTksImV4cCI6MjA2NzIyMTE5OX0.Cbb0JU__rDuKiAL0lwqwqCxok-HfilpIz8LOl9jP9iM';
-const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
-
-// 2. DOM 元素获取
-const elements = {
-    formTitle: document.getElementById('form-title'),
-    loginForm: document.getElementById('login-form'),
-    registerForm: document.getElementById('register-form'),
-    toggleToRegister: document.getElementById('toggle-to-register'),
-    toggleToLogin: document.getElementById('toggle-to-login'),
-    inputs: document.querySelectorAll('#login-form input, #register-form input'),
-};
-
-/**
- * 通用消息提示函数
- * @param {string} message - 要显示的消息
- * @param {number} [duration=3000] - 显示时长 (毫秒)
- */
-function showMesg(message, duration = 3000) {
-    const existingToast = document.querySelector('.toast-notification');
-    if (existingToast) {
-        existingToast.remove();
-    }
-    const toast = document.createElement('div');
-    toast.className = 'toast-notification';
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    setTimeout(() => {
-        toast.classList.add('show');
-    }, 10);
-    setTimeout(() => {
-        toast.classList.remove('show');
-        toast.addEventListener('transitionend', () => toast.remove());
-    }, duration);
-}
-
-/**
- * 更新认证视图 (登录/注册)
- * @param {'login' | 'register'} view 要显示的视图
- */
-function updateAuthView(view) {
-    if (view === 'login') {
-        elements.registerForm.style.display = 'none';
-        elements.toggleToLogin.style.display = 'none';
-        elements.loginForm.style.display = 'block';
-        elements.toggleToRegister.style.display = 'block';
-        elements.formTitle.textContent = 'OA 系统登录';
-    } else {
-        elements.loginForm.style.display = 'none';
-        elements.toggleToRegister.style.display = 'none';
-        elements.registerForm.style.display = 'block';
-        elements.toggleToLogin.style.display = 'block';
-        elements.formTitle.textContent = '创建您的账户';
-    }
-}
-
-/**
- * 处理用户登录
- * @param {Event} event 表单提交事件
- */
-async function handleLogin(event) {
-    event.preventDefault();
-    const email = elements.loginForm.email.value;
-    const password = elements.loginForm.password.value;
-
-    const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
-
-    if (error) {
-        showMesg(`登录失败: ${error.message}`);
-    } else {
-        showMesg('登录成功！即将跳转到主页...');
-        setTimeout(() => {
-            window.location.href = 'main.html';
-        }, 1500); // 延迟1.5秒以便用户看到消息
-    }
-}
-
-/**
- * 处理用户注册
- * @param {Event} event 表单提交事件
- */
-async function handleRegister(event) {
-    event.preventDefault();
-    const email = elements.registerForm.email.value;
-    const password = elements.registerForm.password.value;
-    const confirmPassword = elements.registerForm['confirm-password'].value;
-
-    if (password !== confirmPassword) {
-        showMesg('两次输入的密码不匹配，请重新输入。');
-        return;
-    }
-    
-    if (password.length < 6) {
-        showMesg('密码长度不能少于6位。');
-        return;
-    }
-
-    const { data, error } = await _supabase.auth.signUp({ email, password });
-
-    if (error) {
-        showMesg(`注册失败: ${error.message}`);
-    } else {
-        showMesg('注册成功！现在可以返回登录了。');
-        setTimeout(() => {
-            updateAuthView('login'); // 切换回登录视图
-            elements.loginForm.email.value = email; // 自动填充邮箱
-            elements.loginForm.password.value = ''; // 清空密码
-        }, 1500);
-    }
-}
-
-// 3. 事件监听器初始化
+// 等待DOM和全局资源加载完成
 document.addEventListener('DOMContentLoaded', () => {
-    elements.toggleToRegister.addEventListener('click', (e) => {
-        e.preventDefault();
-        updateAuthView('register');
+    // 初始化Supabase客户端
+    const _supabase = window.OA.createClient();
+    window.OA.supabase = _supabase;
+
+    // DOM 元素缓存
+    const UI = {
+        formTitle: document.getElementById('form-title'),
+        loginForm: document.getElementById('login-form'),
+        registerForm: document.getElementById('register-form'),
+        toggleToRegister: document.getElementById('toggle-to-register'),
+        toggleToLogin: document.getElementById('toggle-to-login'),
+        loginInputs: {
+            email: document.getElementById('login-email'),
+            password: document.getElementById('login-password')
+        },
+        registerInputs: {
+            email: document.getElementById('register-email'),
+            password: document.getElementById('register-password'),
+            confirmPassword: document.getElementById('confirm-password')
+        }
+    };
+
+    /**
+     * 更新认证视图 (登录/注册)
+     * @param {'login' | 'register'} view 要显示的视图
+     */
+    function updateAuthView(view) {
+        const isLogin = view === 'login';
+        
+        UI.registerForm.style.display = isLogin ? 'none' : 'block';
+        UI.toggleToLogin.style.display = isLogin ? 'none' : 'block';
+        UI.loginForm.style.display = isLogin ? 'block' : 'none';
+        UI.toggleToRegister.style.display = isLogin ? 'block' : 'none';
+        UI.formTitle.textContent = isLogin ? 'OA 系统登录' : '创建您的账户';
+    }
+
+    /**
+     * 处理用户登录
+     * @param {Event} event 表单提交事件
+     */
+    async function handleLogin(event) {
+        event.preventDefault();
+        
+        const email = UI.loginInputs.email.value;
+        const password = UI.loginInputs.password.value;
+
+        const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
+
+        if (error) {
+            window.OA.showMessage(`登录失败: ${error.message}`, 'error');
+        } else {
+            window.OA.showMessage('登录成功！即将跳转到主页...', 'success');
+            setTimeout(() => {
+                window.location.href = 'main.html';
+            }, 1000);
+        }
+    }
+
+    /**
+     * 处理用户注册
+     * @param {Event} event 表单提交事件
+     */
+    async function handleRegister(event) {
+        event.preventDefault();
+        
+        const email = UI.registerInputs.email.value;
+        const password = UI.registerInputs.password.value;
+        const confirmPassword = UI.registerInputs.confirmPassword.value;
+
+        if (password !== confirmPassword) {
+            window.OA.showMessage('两次输入的密码不匹配，请重新输入。', 'error');
+            return;
+        }
+        
+        if (password.length < 6) {
+            window.OA.showMessage('密码长度不能少于6位。', 'error');
+            return;
+        }
+
+        const { data, error } = await _supabase.auth.signUp({ email, password });
+
+        if (error) {
+            window.OA.showMessage(`注册失败: ${error.message}`, 'error');
+        } else {
+            window.OA.showMessage('注册成功！现在可以返回登录了。', 'success');
+            setTimeout(() => {
+                updateAuthView('login'); // 切换回登录视图
+                UI.loginInputs.email.value = email; // 自动填充邮箱
+                UI.loginInputs.password.value = ''; // 清空密码
+            }, 1000);
+        }
+    }
+
+    // 使用事件委托优化点击事件
+    document.body.addEventListener('click', (e) => {
+        if (e.target.closest('#toggle-to-register')) {
+            e.preventDefault();
+            updateAuthView('register');
+        } else if (e.target.closest('#toggle-to-login')) {
+            e.preventDefault();
+            updateAuthView('login');
+        }
     });
 
-    elements.toggleToLogin.addEventListener('click', (e) => {
-        e.preventDefault();
-        updateAuthView('login');
-    });
-
-    elements.loginForm.addEventListener('submit', handleLogin);
-    elements.registerForm.addEventListener('submit', handleRegister);
-
-    // 用户开始输入时，隐藏消息
-    elements.inputs.forEach(input => {
-        input.addEventListener('focus', () => {
-            // No need to hide toast manually, it auto-dismisses.
-        });
-    });
+    UI.loginForm.addEventListener('submit', handleLogin);
+    UI.registerForm.addEventListener('submit', handleRegister);
 
     // 初始视图为登录
     updateAuthView('login');
