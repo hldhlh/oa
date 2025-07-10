@@ -1,0 +1,139 @@
+<header class="header">
+    <div class="header-left">
+        <div class="logo">
+            <div class="logo-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                    <path d="M2 17l10 5 10-5"></path>
+                    <path d="M2 12l10 5 10-5"></path>
+                </svg>
+            </div>
+            <h1>OA系统</h1>
+        </div>
+        <nav class="nav-menu">
+            <ul>
+                <li><a href="/pages/dashboard/dashboard.html" class="nav-link">仪表盘</a></li>
+                <li><a href="/pages/user/user.html" class="nav-link">用户管理</a></li>
+                <li><a href="/pages/team/team.html" class="nav-link">团队管理</a></li>
+                <li><a href="/pages/task/task.html" class="nav-link">任务管理</a></li>
+            </ul>
+        </nav>
+    </div>
+    <div class="header-right">
+        <div class="user-info">
+            <span id="user-name">用户</span>
+        </div>
+        <div class="dropdown">
+            <button id="logout-btn" class="btn btn-secondary">登出</button>
+        </div>
+    </div>
+</header>
+
+<style>
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 20px;
+        height: 60px;
+        background-color: white;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+    }
+    
+    .header-left {
+        display: flex;
+        align-items: center;
+    }
+    
+    .logo {
+        display: flex;
+        align-items: center;
+        margin-right: 20px;
+    }
+    
+    .logo-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        background-color: #000;
+        color: #fff;
+        border-radius: 4px;
+        margin-right: 10px;
+    }
+    
+    .logo h1 {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 0;
+    }
+    
+    .nav-menu {
+        display: flex;
+    }
+    
+    .nav-menu ul {
+        display: flex;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .nav-menu li {
+        margin: 0 10px;
+    }
+    
+    .nav-menu a {
+        color: #333;
+        text-decoration: none;
+        font-weight: 500;
+        padding: 5px 0;
+        position: relative;
+        transition: color 0.2s;
+    }
+    
+    .nav-menu a:hover {
+        color: #000;
+    }
+    
+    .nav-menu a.active {
+        color: #000;
+    }
+    
+    .nav-menu a.active:after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background-color: #000;
+    }
+    
+    .header-right {
+        display: flex;
+        align-items: center;
+    }
+    
+    .user-info {
+        display: flex;
+        align-items: center;
+        margin-right: 15px;
+    }
+    
+    @media (max-width: 768px) {
+        .nav-menu {
+            display: none;
+        }
+        
+        .logo h1 {
+            display: none;
+        }
+    }
+</style>

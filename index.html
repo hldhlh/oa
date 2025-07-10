@@ -3,52 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OA 系统 - 认证</title>
-    <link rel="stylesheet" href="styles/global.css">
+    <title>OA系统 - 登录</title>
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="assets/css/auth.css">
 </head>
-<body class="auth-page">
-
-    <div class="container">
-        <div class="card">
-            <h1 id="form-title">OA 系统登录</h1>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="auth-logo">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                        <path d="M2 17l10 5 10-5"></path>
+                        <path d="M2 12l10 5 10-5"></path>
+                    </svg>
+                </div>
+                <h1>OA系统</h1>
+            </div>
             
             <!-- 登录表单 -->
-            <form id="login-form">
+            <form id="login-form" class="auth-form">
                 <div class="form-group">
-                    <label for="login-email">邮箱</label>
-                    <input type="email" id="login-email" name="email" required>
+                    <label for="email">邮箱</label>
+                    <div class="input-with-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                            <polyline points="22,6 12,13 2,6"></polyline>
+                        </svg>
+                        <input type="email" id="email" placeholder="请输入邮箱" required>
+                    </div>
                 </div>
+                
                 <div class="form-group">
-                    <label for="login-password">密码</label>
-                    <input type="password" id="login-password" name="password" required>
+                    <label for="password">密码</label>
+                    <div class="input-with-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                        <input type="password" id="password" placeholder="请输入密码" required>
+                    </div>
                 </div>
-                <button type="submit">登 录</button>
+                
+                <div class="form-footer">
+                    <div class="form-group checkbox">
+                        <input type="checkbox" id="remember-me">
+                        <label for="remember-me">记住我</label>
+                    </div>
+                    <a href="#" id="forgot-password-link" class="forgot-link">忘记密码?</a>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">登录</button>
+                <p class="auth-links">
+                    <span>没有账号?</span>
+                    <a href="#" id="register-link">注册</a>
+                </p>
             </form>
-
+            
+            <!-- 忘记密码表单 -->
+            <form id="forgot-password-form" class="auth-form" style="display: none;">
+                <div class="form-group">
+                    <label for="reset-email">邮箱</label>
+                    <div class="input-with-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                            <polyline points="22,6 12,13 2,6"></polyline>
+                        </svg>
+                        <input type="email" id="reset-email" placeholder="请输入邮箱" required>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">发送重置链接</button>
+                <p class="auth-links">
+                    <a href="#" id="back-to-login" class="back-link">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                        返回登录
+                    </a>
+                </p>
+            </form>
+            
             <!-- 注册表单 -->
-            <form id="register-form">
+            <form id="register-form" class="auth-form" style="display: none;">
+                <div class="form-group">
+                    <label for="register-name">姓名 <span class="form-hint">(至少2个字符)</span></label>
+                    <div class="input-with-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        <input type="text" id="register-name" placeholder="请输入姓名" minlength="2" required>
+                    </div>
+                </div>
+                
                 <div class="form-group">
                     <label for="register-email">邮箱</label>
-                    <input type="email" id="register-email" name="email" required>
+                    <div class="input-with-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                            <polyline points="22,6 12,13 2,6"></polyline>
+                        </svg>
+                        <input type="email" id="register-email" placeholder="请输入邮箱" required>
+                    </div>
                 </div>
+                
                 <div class="form-group">
-                    <label for="register-password">密码 (至少6位)</label>
-                    <input type="password" id="register-password" name="password" required minlength="6">
+                    <label for="register-password">密码</label>
+                    <div class="input-with-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                        <input type="password" id="register-password" placeholder="请输入密码" required>
+                    </div>
                 </div>
+                
                 <div class="form-group">
                     <label for="confirm-password">确认密码</label>
-                    <input type="password" id="confirm-password" name="confirm-password" required minlength="6">
+                    <div class="input-with-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                        <input type="password" id="confirm-password" placeholder="请再次输入密码" required>
+                    </div>
                 </div>
-                <button type="submit">创建账户</button>
+                
+                <button type="submit" class="btn btn-primary">注册</button>
+                <p class="auth-links">
+                    <a href="#" id="back-to-login-from-register" class="back-link">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                        返回登录
+                    </a>
+                </p>
             </form>
-
-            <!-- 切换链接 -->
-            <p id="toggle-to-register" class="toggle-link">还没有账户？ <a href="#">立即注册</a></p>
-            <p id="toggle-to-login" class="toggle-link">已有账户？ <a href="#">返回登录</a></p>
         </div>
+        
     </div>
-    <script src="scripts/global.js" defer></script>
-    <script src="https://cdn.jsdmirror.com/npm/@supabase/supabase-js@2" defer></script>
-    <script src="scripts/auth.js" defer></script>
+    
+    <script src="assets/js/supabase.js"></script>
+    <script src="assets/js/toast.js"></script>
+    <script src="assets/js/auth.js"></script>
 </body>
 </html>
