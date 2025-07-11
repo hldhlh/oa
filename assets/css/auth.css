@@ -199,6 +199,29 @@
     font-size: 0.9rem;
 }
 
+/* 网络检查按钮样式 */
+.network-check {
+    margin-top: 15px;
+    text-align: center;
+    font-size: 0.85rem;
+}
+
+.network-check-link {
+    display: inline-flex;
+    align-items: center;
+    color: #6b7280;
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.network-check-link:hover {
+    color: #4f46e5;
+}
+
+.network-check-link svg {
+    margin-right: 5px;
+}
+
 /* 响应式设计 */
 @media (max-width: 480px) {
     .auth-card {

@@ -58,6 +58,17 @@
                     <span>没有账号?</span>
                     <a href="#" id="register-link">注册</a>
                 </p>
+                
+                <!-- 网络状态检查按钮 -->
+                <div class="network-check">
+                    <a href="#" id="check-network" class="network-check-link">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M2 16.1A5 5 0 0 1 5.9 20M2 12.05A9 9 0 0 1 9.95 20M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"></path>
+                            <line x1="2" y1="20" x2="2" y2="20"></line>
+                        </svg>
+                        检查网络连接
+                    </a>
+                </div>
             </form>
             
             <!-- 忘记密码表单 -->
@@ -146,8 +157,21 @@
         
     </div>
     
+    <!-- 引入本地Supabase库 -->
+    <script src="assets/js/lib/supabase.min.js"></script>
     <script src="assets/js/supabase.js"></script>
+    <script src="assets/js/network-status.js"></script>
     <script src="assets/js/toast.js"></script>
     <script src="assets/js/auth.js"></script>
+    
+    <script>
+        // 添加网络检查功能
+        document.getElementById('check-network').addEventListener('click', function(e) {
+            e.preventDefault();
+            if (window.networkStatus) {
+                window.networkStatus.show();
+            }
+        });
+    </script>
 </body>
 </html>
